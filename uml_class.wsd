@@ -1,7 +1,40 @@
 @startuml all
 
-@enduml
+class Client{
+    sock: Socket
+    server_address: string
+    server_port: int
+    original_video: ?
+    constracter(): 
+    connect(): void
+    send_video():void
+    send_main_menu(): void
+    send_advanced_settings(main_menu): void
+    receive_converted_video(): void  
+    reset_all_data(): void 
+}
 
+class Server{
+    sock: Socket
+    server_address: string
+    server_port: int
+    original_video: ?
+    constracter():
+    accept(): void
+    receive_original_video(): video
+    receive_main_menu(): void
+    receive_advanced_settings(): void
+    convert_video(main_menu,advanced_settings): ?
+    send_converted_video(): void
+}
+
+class View{
+
+}
+
+
+
+@enduml
 
 【要件】
 ・ユーザーが動画を圧縮し、異なるフォーマットや解像度に変換することができるクライアントサーバ分散アプリケーション
@@ -27,11 +60,28 @@
 ・FFMPEG はシェルコマンドで直接実行することができる
 ・Python から直接これらのコマンドを実行する場合は、シェルコマンドを実行して出力文字列を返す exec 関数を利用する
 
-クライアント側
+サービスの流れ
 ・client.pyを実行
 ・「動画をアップロードをクリック」
 ・サービス内容（例： 動画を圧縮する）を選択する
 ・オプションを決める（例： 圧縮レベルをhigh, medium ,lowの中から選択する）
 ・処理後の動画をダウンロード
 
+クライアント側
+・client.pyを実行
+・サーバーとTCPソケットで通信
+・動画をサーバーに送る
+・選択したサービス内容をサーバーに送る
+・選択したオプション内容をサーバーに送る
+・サーバーから処理後の動画を受けとる
+・処理後の動画を提示する
+
 サーバー側
+・server.pyを実行
+・クライアントとTPCソケットで通信
+・クライアントから動画を受信
+・クライアントからサービス内容を受信
+・クライアントからオプション内容を受信
+・サービス内容、オプション内容をもとに処理を実行
+・処理後の動画をクライアントに送る
+

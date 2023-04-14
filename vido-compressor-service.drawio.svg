@@ -1,21 +1,112 @@
-<svg host="65bd71144e" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="461px" height="241px" viewBox="-0.5 -0.5 461 241" content="&lt;mxfile&gt;&lt;diagram name=&quot;first view&quot; id=&quot;f1r5kf5Bf9eIWmQO_fXB&quot;&gt;5Zhdb5swFIZ/jS83ETsx4RIotJPWVV00VdmdGxxwa3BKnCbdr58NJoGYaGvXLmqDIuX49Qf4fXyME4DCfHNekkV2KRLKAXSSDUBnAMKB40D1pZWnWsGuEdKSJabRTpiwX7TpadQVS+iy01AKwSVbdMWZKAo6kx2NlKVYd5vNBe/edUFSagmTGeG2esMSmdXqGLo7/YKyNGvuPMBeXXNLZvdpKVaFuR+AaF5ddXVOmrHMRJcZScS6JaEIoLAUQtZRvgkp1942ttX94gO12+cuaSH/psN1+fBNrH7i4LG4WI2ih3lydffJjPJI+Io206geVj41BlVTpHoQB6BgnTFJJwsy07VrtSSUlsmcq9JAhXNRyFBwUVZ9kVNdSk85WS7NEFsjdGHOOG91iKtLN5KluKd9Q9nzbiZBS0k3Lcn4cE5FTmX5pJrsVm3dxazZLaP1bgVgZLSsRR9iIxKz6tLt2DvnVWDMfwYI+NogjuErHHhdX/HI8hV5Pb4O38pWZNsaITCGwK+D6lMHnmsC/8wEQdi08SwYyhHZdbzrbCEKuofBSISztFDFmfKZKj3Q/jK1IfmmImdJom/Ti7i7CA6l2yuwREPv86hL07WzZNAQb9NEz6f5Y0nLq9s7vcFDh5NbyttJwFlxX5cTIglAfrWpw1ihh6GQ36do8jWOgmSR59Pr6frCPHezMmBrombRtEgqQb1rDvndAkyWi/oFNGcbTeDFOWZB6EF1eO/ayzGEbSrjnhQbPx+KKra49GddT4Ltp8o7M1jtUP/LYMvN4YdzE+HjuTn6cG4OveO5iT+cmxgez81mF++cTEbAC4GvziEuCMbAj97lqePf3m77SPpO5j1IXnDksJA0t+ogGWsePtJs9EEw1kHgAx+fHhu1+xyPTc8PVZMlGEQY+CrwqyAG3vD02CD3iGzs365SqLK/Spg4PRQjZ/hHFO5bobCP4+dfYiXcRMHl6aHA+0f5t8sKVdz9lVfVtf4vRdFv&lt;/diagram&gt;&lt;diagram id=&quot;otRY3SLFEBdpmmYQYwH5&quot; name=&quot;圧縮オプション&quot;&gt;7ZjRbpswFIafxpeVCIYAl8BIK1Vb22VL16vKBQfcGhwZp0n29DNgJ1BIu0ppNinlJvZvHxv+79iGABjm63OOFtlXlmAKTCNZA/gFmObIMEz5UymbRhk7Skg5SVSnnTAlv7GOVOqSJLjsdBSMUUEWXTFmRYFj0dEQ52zV7TZntDvrAqW4J0xjRPvqLUlE1qiu6ez0C0zSTM88GntNS450Z/UkZYYStmpJMAIw5IyJppSvQ0wr87QvTdxkT+v2xjguxN8EzG5m3worZI/Bj2lyb0aGbcdnapRnRJfqgdXNio12gLNlkeBqEAPAYJURgacLFFetK8lcapnIqayNZLEUnD3hkFHG62ho1JdsmbNCDOqE0pY+qS+pqxvDXOD13icebX2UCYhZjgXfyC46wFXWb17UVzuSltayFkXTUyJS2ZNux94ZLAvK43f4Dft+RzbwQuA7IHJA4AI/AhEELgR+qAqep5WgB0eaI14jULACvzBZSYiStJDVWJqJpR5UVhOZ+L5qyEmSVNMMIu8mxT62B2AI9XrSDL0+Q28Aof1RBK23V4wcRW5P+6xrsULlotmz5mRdmfl/LR85Scd60+pbDweshx9lvX261g9k/VGtd07Wevivs97tWZ/JWU/wJHDf3o7GxwTj9cAooz7RDGxXR0Wjvx5abChLP8EMbWYHAvOzxPzq4bHa2U2DogdMm9BSIC6a0SgpnhoxQQIB6NcfX+ZEojTD4ipInzd38d2vWcnQZf79+vqyCdOkb+6d8zNhOxMz8pjvLG/n5KJ5oe5mxquADwquewoZhjceOrXm9TV8ztnOwVA7dge1ZfRROwOorfejltUWbS3tvmTr7q3/A2D0Bw==&lt;/diagram&gt;&lt;diagram id=&quot;nOBgvyYcYXVsoaKmRPPK&quot; name=&quot;処理中&quot;&gt;rZRNc4IwEIZ/TY51kCjgUa21M22nBw+d9pYhK6QNxIlr0f76LhIExHbqTOFA8uxuPt53lfF5tl9asUmfjATNfE/uGb9lvj/0PJ8+JTlUJAgdSKySLqkBK/UFdaWjOyVh20lEYzSqTRfGJs8hxg4T1pqim7Y2urvrRiTQA6tY6D59URLTikZ+2PB7UEla7zwMJlUkE3Wyu8k2FdIULcQXjM+tMViNsv0cdClerUtVd/dD9HQwCzn+peAVn5dP2/WLeER8ePt8vw+y7Mat8in0zl3YHRYPtQLW7HIJ5SIe47MiVQirjYjLaEGeE0sx0zQb0nCL1nzA3Ghjj9XcOz4UWZscW7x6Sq60bvH1uHyJu4OBRdj/eOPhSUdqQDAZoD1QSl0QOuld79FpqnnRODkKHEtbLvojB4XrnuS0diMwDZzGV+jt9/VejFkUsmnAFiGbeCyiwYjNIja9HQwGPTdIDfxN8tzkcKaqQ0KrJKdpTOoB8VmpraJOn7pApqQst7nocbcLzsw8mfwPpvGgaxof9U2LLnl2vWU0bX5+x1jrT4wvvgE=&lt;/diagram&gt;&lt;diagram name=&quot;ダウンロード&quot; id=&quot;IAyRIIEvzq0X7zUsf7-h&quot;&gt;tZRRb9owEMc/jR8rJXZJyiMEGFNVtRsPm/bmxibx5sTUmAX26XdOzhCXSlWlzYnE5XdnO77/nxBWNMdPlu/qByOkJjQRR8IWhNI0SSj8eHIaSJYjqKwSWHQBG/VHhplID0rIfVTojNFO7WJYmraVpYsYt9Z0cdnW6HjXHa/kFdiUXF/Tb0q4eqB3NL/wtVRVHXZOs+mQaXgoxpPsay5MN0JsSVhhjXFD1BwLqX3zQl+eZz9+7l8W1GzK7jl9evy+flrfDIutPjLlfAQrW/dvl0Ytf3N9wH7hWd0pNNCaQyukXyQhbN7VysnNjpc+24FlgNWu0fCUQrh31vyShdHG9rNZ0g/IbE3rRnwYniutR3w78RdwfDFpnTy+UvKdNqRnbcDU0jTS2RPMC6vkKCf6GV5xeO4u7rjNkNUjZ9BbhBwdWZ3XvnQdAmz82yKsrPl8b9rJSX29t/bLZEXlFHWLRFgycgd30geUzDIkc4bBbBFIEYqnV9JB69w7+tBFng36xDpkCZ+mOXCuVdUCK6HpEpJzL4mC/9cME40Swm/4pjVi87zywLYf/1Frlk4irVl6rfXZD2Ots49LTby24VPQ50YfVLb8Cw==&lt;/diagram&gt;&lt;/mxfile&gt;">
+<svg host="65bd71144e" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="631px" height="261px" viewBox="-0.5 -0.5 631 261" content="&lt;mxfile&gt;&lt;diagram name=&quot;first view&quot; id=&quot;f1r5kf5Bf9eIWmQO_fXB&quot;&gt;5Zhdb5swFIZ/jS83ETsx4RIotJPWVV00VdmdGxxwa3BKnCbdr58NJoGYaGvXLmqDIuX49Qf4fXyME4DCfHNekkV2KRLKAXSSDUBnAMKB40D1pZWnWsGuEdKSJabRTpiwX7TpadQVS+iy01AKwSVbdMWZKAo6kx2NlKVYd5vNBe/edUFSagmTGeG2esMSmdXqGLo7/YKyNGvuPMBeXXNLZvdpKVaFuR+AaF5ddXVOmrHMRJcZScS6JaEIoLAUQtZRvgkp1942ttX94gO12+cuaSH/psN1+fBNrH7i4LG4WI2ih3lydffJjPJI+Io206geVj41BlVTpHoQB6BgnTFJJwsy07VrtSSUlsmcq9JAhXNRyFBwUVZ9kVNdSk85WS7NEFsjdGHOOG91iKtLN5KluKd9Q9nzbiZBS0k3Lcn4cE5FTmX5pJrsVm3dxazZLaP1bgVgZLSsRR9iIxKz6tLt2DvnVWDMfwYI+NogjuErHHhdX/HI8hV5Pb4O38pWZNsaITCGwK+D6lMHnmsC/8wEQdi08SwYyhHZdbzrbCEKuofBSISztFDFmfKZKj3Q/jK1IfmmImdJom/Ti7i7CA6l2yuwREPv86hL07WzZNAQb9NEz6f5Y0nLq9s7vcFDh5NbyttJwFlxX5cTIglAfrWpw1ihh6GQ36do8jWOgmSR59Pr6frCPHezMmBrombRtEgqQb1rDvndAkyWi/oFNGcbTeDFOWZB6EF1eO/ayzGEbSrjnhQbPx+KKra49GddT4Ltp8o7M1jtUP/LYMvN4YdzE+HjuTn6cG4OveO5iT+cmxgez81mF++cTEbAC4GvziEuCMbAj97lqePf3m77SPpO5j1IXnDksJA0t+ogGWsePtJs9EEw1kHgAx+fHhu1+xyPTc8PVZMlGEQY+CrwqyAG3vD02CD3iGzs365SqLK/Spg4PRQjZ/hHFO5bobCP4+dfYiXcRMHl6aHA+0f5t8sKVdz9lVfVtf4vRdFv&lt;/diagram&gt;&lt;diagram id=&quot;otRY3SLFEBdpmmYQYwH5&quot; name=&quot;圧縮オプション&quot;&gt;7ZjRbpswFIafxpeVCIYAl8BIK1Vb22VL16vKBQfcGhwZp0n29DNgJ1BIu0ppNinlJvZvHxv+79iGABjm63OOFtlXlmAKTCNZA/gFmObIMEz5UymbRhk7Skg5SVSnnTAlv7GOVOqSJLjsdBSMUUEWXTFmRYFj0dEQ52zV7TZntDvrAqW4J0xjRPvqLUlE1qiu6ez0C0zSTM88GntNS450Z/UkZYYStmpJMAIw5IyJppSvQ0wr87QvTdxkT+v2xjguxN8EzG5m3worZI/Bj2lyb0aGbcdnapRnRJfqgdXNio12gLNlkeBqEAPAYJURgacLFFetK8lcapnIqayNZLEUnD3hkFHG62ho1JdsmbNCDOqE0pY+qS+pqxvDXOD13icebX2UCYhZjgXfyC46wFXWb17UVzuSltayFkXTUyJS2ZNux94ZLAvK43f4Dft+RzbwQuA7IHJA4AI/AhEELgR+qAqep5WgB0eaI14jULACvzBZSYiStJDVWJqJpR5UVhOZ+L5qyEmSVNMMIu8mxT62B2AI9XrSDL0+Q28Aof1RBK23V4wcRW5P+6xrsULlotmz5mRdmfl/LR85Scd60+pbDweshx9lvX261g9k/VGtd07Wevivs97tWZ/JWU/wJHDf3o7GxwTj9cAooz7RDGxXR0Wjvx5abChLP8EMbWYHAvOzxPzq4bHa2U2DogdMm9BSIC6a0SgpnhoxQQIB6NcfX+ZEojTD4ipInzd38d2vWcnQZf79+vqyCdOkb+6d8zNhOxMz8pjvLG/n5KJ5oe5mxquADwquewoZhjceOrXm9TV8ztnOwVA7dge1ZfRROwOorfejltUWbS3tvmTr7q3/A2D0Bw==&lt;/diagram&gt;&lt;diagram id=&quot;nOBgvyYcYXVsoaKmRPPK&quot; name=&quot;処理中&quot;&gt;rZRNc4IwEIZ/TY51kCjgUa21M22nBw+d9pYhK6QNxIlr0f76LhIExHbqTOFA8uxuPt53lfF5tl9asUmfjATNfE/uGb9lvj/0PJ8+JTlUJAgdSKySLqkBK/UFdaWjOyVh20lEYzSqTRfGJs8hxg4T1pqim7Y2urvrRiTQA6tY6D59URLTikZ+2PB7UEla7zwMJlUkE3Wyu8k2FdIULcQXjM+tMViNsv0cdClerUtVd/dD9HQwCzn+peAVn5dP2/WLeER8ePt8vw+y7Mat8in0zl3YHRYPtQLW7HIJ5SIe47MiVQirjYjLaEGeE0sx0zQb0nCL1nzA3Ghjj9XcOz4UWZscW7x6Sq60bvH1uHyJu4OBRdj/eOPhSUdqQDAZoD1QSl0QOuld79FpqnnRODkKHEtbLvojB4XrnuS0diMwDZzGV+jt9/VejFkUsmnAFiGbeCyiwYjNIja9HQwGPTdIDfxN8tzkcKaqQ0KrJKdpTOoB8VmpraJOn7pApqQst7nocbcLzsw8mfwPpvGgaxof9U2LLnl2vWU0bX5+x1jrT4wvvgE=&lt;/diagram&gt;&lt;diagram name=&quot;ダウンロード&quot; id=&quot;IAyRIIEvzq0X7zUsf7-h&quot;&gt;tZRRb9owEMc/jR8rJXZJyiMEGFNVtRsPm/bmxibx5sTUmAX26XdOzhCXSlWlzYnE5XdnO77/nxBWNMdPlu/qByOkJjQRR8IWhNI0SSj8eHIaSJYjqKwSWHQBG/VHhplID0rIfVTojNFO7WJYmraVpYsYt9Z0cdnW6HjXHa/kFdiUXF/Tb0q4eqB3NL/wtVRVHXZOs+mQaXgoxpPsay5MN0JsSVhhjXFD1BwLqX3zQl+eZz9+7l8W1GzK7jl9evy+flrfDIutPjLlfAQrW/dvl0Ytf3N9wH7hWd0pNNCaQyukXyQhbN7VysnNjpc+24FlgNWu0fCUQrh31vyShdHG9rNZ0g/IbE3rRnwYniutR3w78RdwfDFpnTy+UvKdNqRnbcDU0jTS2RPMC6vkKCf6GV5xeO4u7rjNkNUjZ9BbhBwdWZ3XvnQdAmz82yKsrPl8b9rJSX29t/bLZEXlFHWLRFgycgd30geUzDIkc4bBbBFIEYqnV9JB69w7+tBFng36xDpkCZ+mOXCuVdUCK6HpEpJzL4mC/9cME40Swm/4pjVi87zywLYf/1Frlk4irVl6rfXZD2Ots49LTby24VPQ50YfVLb8Cw==&lt;/diagram&gt;&lt;/mxfile&gt;" style="background-color: rgb(255, 255, 255);">
     <defs/>
     <g>
-        <rect x="0" y="0" width="460" height="240" fill="#f5f5f5" stroke="#000000" pointer-events="all"/>
-        <rect x="145" y="80" width="170" height="60" fill="#60a917" stroke="#2d7600" pointer-events="all"/>
+        <rect x="0" y="0" width="630" height="260" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <rect x="119" y="45" width="390" height="40" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <rect x="249.5" y="50" width="119" height="30" fill="none" stroke="none" pointer-events="all"/>
         <g transform="translate(-0.5 -0.5)">
             <switch>
                 <foreignObject pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" style="overflow: visible; text-align: left;">
-                    <div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 168px; height: 1px; padding-top: 110px; margin-left: 146px;">
-                        <div data-drawio-colors="color: #ffffff; " style="box-sizing: border-box; font-size: 0px; text-align: center;">
-                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(255, 255, 255); line-height: 1.2; pointer-events: all; white-space: normal; overflow-wrap: normal;">
-                                ダウンロード
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 117px; height: 1px; padding-top: 65px; margin-left: 251px;">
+                        <div data-drawio-colors="color: #000000; " style="box-sizing: border-box; font-size: 0px; text-align: center;">
+                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; pointer-events: all; white-space: normal; overflow-wrap: normal;">
+                                アップロード
                             </div>
                         </div>
                     </div>
                 </foreignObject>
-                <text x="230" y="114" fill="#ffffff" font-family="Helvetica" font-size="12px" text-anchor="middle">
-                    ダウンロード
+                <text x="309" y="69" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">
+                    アップロード
+                </text>
+            </switch>
+        </g>
+        <ellipse cx="59" cy="180" rx="40" ry="40" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <ellipse cx="179" cy="180" rx="40" ry="40" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <ellipse cx="309" cy="180" rx="40" ry="40" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <ellipse cx="439" cy="180" rx="40" ry="40" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <ellipse cx="569" cy="180" rx="40" ry="40" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <rect x="29" y="100" width="60" height="30" fill="none" stroke="none" pointer-events="all"/>
+        <g transform="translate(-0.5 -0.5)">
+            <switch>
+                <foreignObject pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" style="overflow: visible; text-align: left;">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 58px; height: 1px; padding-top: 115px; margin-left: 30px;">
+                        <div data-drawio-colors="color: #000000; " style="box-sizing: border-box; font-size: 0px; text-align: center;">
+                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; pointer-events: all; white-space: normal; overflow-wrap: normal;">
+                                圧縮
+                            </div>
+                        </div>
+                    </div>
+                </foreignObject>
+                <text x="59" y="119" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">
+                    圧縮
+                </text>
+            </switch>
+        </g>
+        <rect x="149" y="100" width="60" height="30" fill="none" stroke="none" pointer-events="all"/>
+        <g transform="translate(-0.5 -0.5)">
+            <switch>
+                <foreignObject pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" style="overflow: visible; text-align: left;">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 58px; height: 1px; padding-top: 115px; margin-left: 150px;">
+                        <div data-drawio-colors="color: #000000; " style="box-sizing: border-box; font-size: 0px; text-align: center;">
+                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; pointer-events: all; white-space: normal; overflow-wrap: normal;">
+                                解像度
+                            </div>
+                        </div>
+                    </div>
+                </foreignObject>
+                <text x="179" y="119" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">
+                    解像度
+                </text>
+            </switch>
+        </g>
+        <rect x="279" y="100" width="60" height="30" fill="none" stroke="none" pointer-events="all"/>
+        <g transform="translate(-0.5 -0.5)">
+            <switch>
+                <foreignObject pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" style="overflow: visible; text-align: left;">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 58px; height: 1px; padding-top: 115px; margin-left: 280px;">
+                        <div data-drawio-colors="color: #000000; " style="box-sizing: border-box; font-size: 0px; text-align: center;">
+                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; pointer-events: all; white-space: normal; overflow-wrap: normal;">
+                                縦横比
+                            </div>
+                        </div>
+                    </div>
+                </foreignObject>
+                <text x="309" y="119" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">
+                    縦横比
+                </text>
+            </switch>
+        </g>
+        <rect x="404" y="100" width="70" height="30" fill="none" stroke="none" pointer-events="all"/>
+        <g transform="translate(-0.5 -0.5)">
+            <switch>
+                <foreignObject pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" style="overflow: visible; text-align: left;">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 68px; height: 1px; padding-top: 115px; margin-left: 405px;">
+                        <div data-drawio-colors="color: #000000; " style="box-sizing: border-box; font-size: 0px; text-align: center;">
+                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; pointer-events: all; white-space: normal; overflow-wrap: normal;">
+                                to Audio
+                            </div>
+                        </div>
+                    </div>
+                </foreignObject>
+                <text x="439" y="119" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">
+                    to Audio
+                </text>
+            </switch>
+        </g>
+        <rect x="539" y="100" width="60" height="30" fill="none" stroke="none" pointer-events="all"/>
+        <g transform="translate(-0.5 -0.5)">
+            <switch>
+                <foreignObject pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility" style="overflow: visible; text-align: left;">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 58px; height: 1px; padding-top: 115px; margin-left: 540px;">
+                        <div data-drawio-colors="color: #000000; " style="box-sizing: border-box; font-size: 0px; text-align: center;">
+                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; pointer-events: all; white-space: normal; overflow-wrap: normal;">
+                                GIF WEBM
+                            </div>
+                        </div>
+                    </div>
+                </foreignObject>
+                <text x="569" y="119" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">
+                    GIF WEBM
                 </text>
             </switch>
         </g>
