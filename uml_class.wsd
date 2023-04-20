@@ -6,10 +6,11 @@ class Client{
     server_port: int
     original_video: ?
     constracter(): 
+    read_video(): void
     connect(): void
     send_video():void
-    send_main_menu(): void
-    send_advanced_settings(main_menu): void
+    send_main_menu_info(): void
+    send_advanced_settings_info(main_menu): void
     receive_converted_video(): void  
     reset_all_data(): void 
 }
@@ -22,8 +23,8 @@ class Server{
     constracter():
     accept(): void
     receive_original_video(): video
-    receive_main_menu(): void
-    receive_advanced_settings(): void
+    receive_main_menu_info(): void
+    receive_advanced_settings_info(): void
     convert_video(main_menu,advanced_settings): ?
     send_converted_video(): void
 }
@@ -76,6 +77,26 @@ class View{
 ・サーバーから処理後の動画を受けとる
 ・処理後の動画を提示する
 
+View
+動画の読み込み
+・ファイルを選択
+・ドラッグアンドドロップ
+
+【動画の編集】
+・動画を圧縮 
+ex
+high
+ffmpeg -i test.mp4 -c:v libx264 -crf 40 -preset medium -tune zerolatency -c:a copy output-crf-40.mp4
+mid
+ffmpeg -i test.mp4 -c:v libx264 -crf 34 -preset medium -tune zerolatency -c:a copy output-crf-34.mp4
+low
+ffmpeg -i test.mp4 -c:v libx264 -crf 28 -preset medium -tune zerolatency -c:a copy output-crf-28.mp4
+
+・解像度を変更
+・縦横比を変更
+・オーディオに変換
+
+
 サーバー側
 ・server.pyを実行
 ・クライアントとTPCソケットで通信
@@ -84,4 +105,3 @@ class View{
 ・クライアントからオプション内容を受信
 ・サービス内容、オプション内容をもとに処理を実行
 ・処理後の動画をクライアントに送る
-
