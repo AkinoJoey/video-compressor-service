@@ -124,9 +124,6 @@ class View:
         option_window.focus_set()
     
 
-
-
-
 class Main():
     # メインアプリケーションウィンドウの設定
     root = Tk()
