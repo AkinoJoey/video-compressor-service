@@ -1,17 +1,37 @@
 from tkinter import *
 from tkinter import ttk
+from tkinter import filedialog
+import socket
 
+class Client:
+    def __init__(self):
+        self.sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        self.server_address = "127.0.0.1"
+        self.server_port = 9999
+        self.original_video = None
+
+    def connect(self):
+        test_string = "this is test."
+        self.sock.connect((self.server_address, self.server_port))
+        self.sock.sendall(test_string.encode("utf-8"))
+        data = self.sock.recv(1024)
+        print("Recevid", data.decode())
 
 class View:
-    
     def __init__(self,root):
+        self.root = root
+        
         # rootの構成
-        root.title("Main Menu")
-        root.columnconfigure(0, weight=1)
-        root.rowconfigure(0, weight=1)
+        # サイズを決める
+        self.root.geometry("620x220")
+        #　リサイズをFalseに設定 
+        self.root.resizable(False, False)
+        self.root.title("Main Menu")
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
         
         # mainframeの作成
-        mainframe = ttk.Frame(root)
+        mainframe = ttk.Frame(self.root)
         mainframe.grid(column=0, row=0,sticky=(N, W, E, S))
         mainframe.columnconfigure(0, weight=1)
         mainframe.rowconfigure(0, weight=1)
@@ -34,104 +54,89 @@ class View:
         lower_half_frame.rowconfigure(0, weight=1)
         
         # アップロードボタン
-        upload_btn_frame = ttk.Frame(upper_half_frame,borderwidth=2, relief='solid')
+        upload_btn_frame = ttk.Frame(upper_half_frame)
         upload_btn_frame.grid(column=0, row=0)
-        ttk.Button(upload_btn_frame, text="Upload").grid(column=0, row=0)
+        ttk.Button(upload_btn_frame, text="Upload" ,command=filedialog.askopenfilename).grid(column=0, row=0)
         
         # 圧縮ボタンの部分
-        compress_frame = ttk.Frame(lower_half_frame,borderwidth=2, relief='solid')
-        compress_frame.grid(column=0, row=0,sticky=(N, W, E, S))
-        ttk.Label(compress_frame, text="圧縮").grid(column=0, row=0)
-        ttk.Button(compress_frame).grid(column=0, row=1)
+        compress_frame = ttk.Frame(lower_half_frame)
+        compress_frame.grid(column=0, row=0)
+        compress_frame.columnconfigure(0, weight=1)
+        compress_frame.rowconfigure(0, weight=1)
+        ttk.Button(compress_frame,text="圧縮",command=self.make_compress_option_display).grid(column=0, row=0)
         
         # # 解像度ボタンの部分
-        # resolution_frame = ttk.Frame(lower_half_frame)
-        # resolution_frame.grid(column=1, row=1)
-        # ttk.Label(resolution_frame, text="解像度").grid(column=0, row=0)
-        # ttk.Button(resolution_frame).grid(column=0, row=1)
+        resolution_frame = ttk.Frame(lower_half_frame)
+        resolution_frame.grid(column=1, row=0)
+        ttk.Button(resolution_frame,text="解像度").grid(column=0, row=0)
         
         # # 縦横比ボタンの部分
-        # ratio_frame = ttk.Frame(lower_half_frame)
-        # ratio_frame.grid(column=2, row=1)
-        # ttk.Label(ratio_frame, text="縦横比").grid(column=0, row=0)
-        # ttk.Button(ratio_frame).grid(column=0, row=1)
+        ratio_frame = ttk.Frame(lower_half_frame)
+        ratio_frame.grid(column=2, row=0)
+        ttk.Button(ratio_frame,text="縦横比").grid(column=0, row=0)
         
         # # to Audioボタンの部分
-        # to_audio_frame = ttk.Frame(lower_half_frame)
-        # to_audio_frame.grid(column=3, row=1)
-        # ttk.Label(to_audio_frame, text="to Audio").grid(column=0, row=0)
-        # ttk.Button(to_audio_frame).grid(column=0, row=1)
+        to_audio_frame = ttk.Frame(lower_half_frame)
+        to_audio_frame.grid(column=3, row=0)
+        ttk.Button(to_audio_frame,text="to Audio").grid(column=0, row=0)
         
         # # GIF WEBMボタンの部分
-        # gif_webm_frame = ttk.Label(lower_half_frame)
-        # gif_webm_frame.grid(column=4, row=1)
-        # ttk.Label(gif_webm_frame, text="GIF or WEBM").grid(column=0, row=0)
-        # ttk.Button(gif_webm_frame).grid(column=0, row=1)
-        
-        
-        # コンテンツフレーム内に含まれるすべてのウィジェットにパディングを追加
-        # for child in mainframe.winfo_children(): 
-        #     child.grid_configure(padx=5, pady=5)
-            
-class FeetToMeters:
+        gif_webm_frame = ttk.Label(lower_half_frame)
+        gif_webm_frame.grid(column=4, row=0)
+        ttk.Button(gif_webm_frame, text="GIF WEBM").grid(column=0, row=0)
 
-    def __init__(self, root):
-        
-        # タイトルの作成
-        root.title("Feet to Meters")
+    def make_compress_option_display(self):
+        # option_windowの作成
+        option_window = Toplevel(self.root)
+        option_window.title("圧縮する")
+        option_window.geometry("420x220")
+        option_window.resizable(False,False)
+        option_window.columnconfigure(0, weight=1)
+        option_window.rowconfigure(0, weight=1)
 
-        # コンテンツフレームの作成
-        mainframe = ttk.Frame(root, padding="3 3 12 12")
-        
-        mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
-        root.columnconfigure(0, weight=1)
-        root.rowconfigure(0, weight=1)
-       
-        # フィート数を入力するウィジェットを作成
-        self.feet = StringVar()
-        feet_entry = ttk.Entry(mainframe, width=7, textvariable=self.feet)
-        feet_entry.grid(column=2, row=1, sticky=(W, E))
-        self.meters = StringVar()
+        # mainframeの作成
+        mainframe = ttk.Frame(option_window)
+        mainframe.grid(column=0, row=0,sticky=(N, W, E, S))
+        mainframe.columnconfigure(0, weight=1)
+        mainframe.rowconfigure(0, weight=1)
+        mainframe.rowconfigure(1, weight=1)
+        mainframe.rowconfigure(2, weight=1)
+        mainframe.rowconfigure(3, weight=1)
+        mainframe.rowconfigure(4, weight=1)
 
-        # 変換後のmetersを表示する部分を作成
-        ttk.Label(mainframe, textvariable=self.meters).grid(column=2, row=2, sticky=(W, E))
-        
-        #　calculateのボタンを作成
-        ttk.Button(mainframe, text="Calculate", command=self.calculate).grid(column=3, row=3, sticky=W)
+        # 圧縮レベルのラベル部分
+        ttk.Label(mainframe,text="圧縮レベル").grid(column=0,row=0)
 
-        # その他の文字の部分を作成
-        ttk.Label(mainframe, text="feet").grid(column=3, row=1, sticky=W)
-        ttk.Label(mainframe, text="is equivalent to").grid(column=1, row=2, sticky=E)
-        ttk.Label(mainframe, text="meters").grid(column=3, row=2, sticky=W)
+        # radio button
+        compress_level = StringVar()
+        high = ttk.Radiobutton(mainframe, text="high", variable=compress_level, value="high")
+        high.grid(column=0,row=1)
+        middle = ttk.Radiobutton(mainframe, text="middle", variable=compress_level, value="middle")
+        middle.grid(column=0, row=2)
+        low = ttk.Radiobutton(mainframe, text="low", variable=compress_level, value="low")
+        low.grid(column=0, row=3)
 
-        # コンテンツフレーム内に含まれるすべてのウィジェットにパディングを追加
-        for child in mainframe.winfo_children(): 
-            child.grid_configure(padx=5, pady=5)
+        # start button
+        ttk.Button(mainframe, text="start").grid(column=0, row=4)
 
-        # エントリウィジェットにフォーカスを当てて入力しやすくする
-        feet_entry.focus()
-        
-        # returnキーとcalculateボタンをbindして操作性を高める
-        root.bind("<Return>", self.calculate)
-        
-    def calculate(self, *args):
-        try:
-            value = float(self.feet.get())
-            self.meters.set(int(0.3048 * value * 10000.0 + 0.5)/10000.0)
-        except ValueError:
-            pass
+        # main manuの操作ができないように設定して、フォーカスを新しいウィンドウに移す
+        option_window.grab_set()
+        option_window.focus_set()
+    
 
 
-# メインアプリケーションウィンドウの設定
-root = Tk()
 
-# サイズを決める
-root.geometry("620x220")
 
-#　リサイズをFalseに設定 
-root.resizable(False, False)
-# FeetToMeters(root)
-View(root)
+class Main():
+    # メインアプリケーションウィンドウの設定
+    root = Tk()
+    # FeetToMeters(root)
+    View(root)
+    # rootをループしてウィジェットを常時表示する
+    root.mainloop()
 
-# rootをループしてウィジェットを常時表示する
-root.mainloop()
+    # client = Client()
+    # client.connect()
+
+if __name__ == "__main__":
+    Main()
