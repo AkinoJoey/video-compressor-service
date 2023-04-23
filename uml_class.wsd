@@ -4,14 +4,17 @@ class Client{
     sock: Socket
     server_address: string
     server_port: int
-    original_video: ?
+    original_video_path: string
+    main_menu: string
+    option_menu: string
     constracter(): 
     read_video(): void
+    set_main_menu(): void
+    set_option_menu(): void
     connect(): void
+    send_menu_info(): void
     send_video():void
-    send_main_menu_info(): void
-    send_advanced_settings_info(main_menu): void
-    receive_converted_video(): void  
+    receive_converted_video(): void 
     reset_all_data(): void 
 }
 
@@ -22,10 +25,9 @@ class Server{
     original_video: ?
     constracter():
     accept(): void
+    receive_menu_info(): void
     receive_original_video(): video
-    receive_main_menu_info(): void
-    receive_advanced_settings_info(): void
-    convert_video(main_menu,advanced_settings): ?
+    convert_video(main_menu,advanced_settings): void
     send_converted_video(): void
 }
 
