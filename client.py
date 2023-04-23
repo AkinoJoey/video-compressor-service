@@ -3,19 +3,26 @@ from tkinter import ttk
 from tkinter import filedialog
 import socket
 
+
 class Client:
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.server_address = "127.0.0.1"
         self.server_port = 9999
-        self.original_video = None
-
+        self.original_video_path = "test-1920x1080-30fps.mp4"
+        self.BUFFER_SIZE = 4096
+        
     def connect(self):
-        test_string = "this is test."
         self.sock.connect((self.server_address, self.server_port))
-        self.sock.sendall(test_string.encode("utf-8"))
-        data = self.sock.recv(1024)
-        print("Recevid", data.decode())
+        
+        print("Sending video..")
+        
+        with open(self.original_video_path, "rb") as video:
+            buffer = video.read()
+            self.sock.sendall(buffer)
+            
+        print("Done sending..")
+
 
 class View:
     def __init__(self,root):
@@ -134,6 +141,7 @@ class Main():
 
     # client = Client()
     # client.connect()
+    # client.read_video_file()
 
 if __name__ == "__main__":
     Main()
