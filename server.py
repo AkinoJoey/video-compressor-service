@@ -16,6 +16,7 @@ class Server:
         print("Connected by", address)
         
         self.receive_original_video(connect)
+
     
     def receive_original_video(self,connect):
         data = connect.recv(1024)
