@@ -14,16 +14,15 @@ class Server{
 }
 
 class Client{
+    BUFFER_SIZE: int
     sock: Socket
     server_address: string
     server_port: int
-    original_video_path: string
-    main_menu: string
-    option_menu: string
+    file_path: string
+    file_name: string
+    file_extension: string
     constracter(): 
-    select_video(): void
-    set_main_menu(): void
-    set_option_menu(): void
+    create_menu_info_json(): string
     connect(): void
     send_menu_info(): void
     send_video():void
@@ -31,10 +30,22 @@ class Client{
     reset_all_data(): void 
 }
 
-class View{
-
+class ViewController{
+    root: TK
+    client: Client
+    file_name: StringVar
+    constracter():
+    create_main_manu_page(): void
+    prompt_video_file():void
+    set_file_path():void
+    set_file_name():void
+    set_file_extension():void
+    display_file_name():void
+    create_compress_option_display(): void
+    set_main_menu(): void
+    set_option_menu(): void
+    start_to_convert(): void
 }
-
 
 
 @enduml
