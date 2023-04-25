@@ -2,44 +2,72 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
 import socket
+import os
+import json
 
 
 class Client:
     def __init__(self):
+        self.BUFFER_SIZE = 4096
+
         self.sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.server_address = "127.0.0.1"
         self.server_port = 9999
-        self.file_name = "test.mp4"
-        self.BUFFER_SIZE = 4096
+        self.file_path = None
+        self.file_name = None
+        self.file_extension = None
+        self.main_menu = None
+        self.option_menu = None
+    
+    def create_menu_info_json(self):
+        menu_info = {
+            "file_name": self.file_name,
+            "file_extension": self.file_extension,
+            "main_menu": self.main_menu,
+            "option_menu":self.option_menu
+        }
+
+        return json.dumps(menu_info)
+    
+    def send_menu_info(self,json_file):
+        print("sending menu info ...")
+        DATA_SIZE_SENDING_PER_ONE = 4
+        json_file_bytes = json_file.encode("utf-8")
+        self.sock.sendall(len(json_file_bytes).to_bytes(DATA_SIZE_SENDING_PER_ONE),"big")
         
     def connect(self):
         self.sock.connect((self.server_address, self.server_port))
+
+        menu_info_json = self.create_menu_info_json()
+        self.send_menu_info(menu_info_json)
+
+        # print("Sending video..")
         
-        print("Sending video..")
-        
-        with open(self.file_name, "rb") as video:
-            buffer = video.read()
-            self.sock.sendall(buffer)
+        # with open(self.file_path, "rb") as video:
+        #     buffer = video.read()
+        #     self.sock.sendall(buffer)
             
-        print("Done sending..")
+        # print("Done sending..")
 
 
-class View:
-    @staticmethod
-    def create_main_manu_page():
-        root = Tk()
-        
+class ViewController:
+    def __init__(self,client):
+        self.root = Tk()
+        self.client = client
+        self.file_name = StringVar()
+
+    def create_main_manu_page(self):
         # rootの構成
         # サイズを決める
-        root.geometry("620x220")
+        self.root.geometry("620x220")
         #　リサイズをFalseに設定 
-        root.resizable(False, False)
-        root.title("Main Menu")
-        root.columnconfigure(0, weight=1)
-        root.rowconfigure(0, weight=1)
+        self.root.resizable(False, False)
+        self.root.title("Main Menu")
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
         
         # mainframeの作成
-        mainframe = ttk.Frame(root)
+        mainframe = ttk.Frame(self.root)
         mainframe.grid(column=0, row=0,sticky=(N, W, E, S))
         mainframe.columnconfigure(0, weight=1)
         mainframe.rowconfigure(0, weight=1)
@@ -63,15 +91,22 @@ class View:
         
         # 動画選択ボタン
         upload_btn_frame = ttk.Frame(upper_half_frame)
-        upload_btn_frame.grid(column=0, row=0)
-        ttk.Button(upload_btn_frame, text="ファイルを選択" ,command=filedialog.askopenfilename).grid(column=0, row=0)
+        upload_btn_frame.grid(column=0, row=0,sticky=(N,W,E,S))
+        upload_btn_frame.columnconfigure(0,weight=1)
+        upload_btn_frame.rowconfigure(0,weight=2)
+        upload_btn_frame.rowconfigure(1,weight=1)
+        ttk.Button(upload_btn_frame, text="選択" ,command=lambda: self.prompt_video_file()).grid(column=0, row=0,sticky=S)
+
+        # 選択した動画名の表示部分
+        file_name_label = ttk.Label(upload_btn_frame, textvariable=self.file_name)
+        file_name_label.grid(column=0, row=1,sticky=N)
         
         # 圧縮ボタンの部分
         compress_frame = ttk.Frame(lower_half_frame)
         compress_frame.grid(column=0, row=0)
         compress_frame.columnconfigure(0, weight=1)
         compress_frame.rowconfigure(0, weight=1)
-        ttk.Button(compress_frame,text="圧縮",command=lambda: View.make_compress_option_display(root)).grid(column=0, row=0)
+        ttk.Button(compress_frame,text="圧縮",command=lambda: [self.create_compress_option_display(),self.set_main_menu("圧縮")]).grid(column=0, row=0)
         
         # # 解像度ボタンの部分
         resolution_frame = ttk.Frame(lower_half_frame)
@@ -93,12 +128,39 @@ class View:
         gif_webm_frame.grid(column=4, row=0)
         ttk.Button(gif_webm_frame, text="to GIF or WEBM").grid(column=0, row=0)
 
-        root.mainloop()
+        self.root.mainloop()
     
-    @staticmethod
-    def make_compress_option_display(root):
+    def prompt_video_file(self):
+        file_path = filedialog.askopenfilename(
+            title = "動画ファイルを選択",
+            initialdir= "./"
+        )
+
+        # 拡張子なしのファイル名
+        file_name_with_extension = os.path.basename(file_path)
+        file_name_without_extension = os.path.splitext(os.path.basename(file_path))[0]
+        file_extension = os.path.splitext(file_name_with_extension)[1]
+
+        self.set_file_path(file_path)
+        self.set_file_name(file_name_without_extension)
+        self.set_file_extension(file_extension)
+        self.display_file_name(file_name_with_extension)
+
+    def set_file_path(self, file_path):
+        self.client.file_path = file_path
+        
+    def set_file_name(self,file_name):
+        self.client.file_name = file_name
+    
+    def set_file_extension(self,file_extension):
+        self.client.file_extension = file_extension
+    
+    def display_file_name(self, file_name):
+        self.file_name.set(file_name)
+    
+    def create_compress_option_display(self):
         # option_windowの作成
-        option_window = Toplevel(root)
+        option_window = Toplevel(self.root)
         option_window.title("圧縮する")
         option_window.geometry("420x220")
         option_window.resizable(False,False)
@@ -128,22 +190,26 @@ class View:
         low.grid(column=0, row=3)
 
         # start button
-        ttk.Button(mainframe, text="start").grid(column=0, row=4)
+        ttk.Button(mainframe, text="start",command=lambda:[self.set_option_menu(compress_level.get()),self.start_to_convert()]).grid(column=0, row=4)
 
         # main manuの操作ができないように設定して、フォーカスを新しいウィンドウに移す
         option_window.grab_set()
         option_window.focus_set()
+    
+    def set_main_menu(self, main_menu):
+        self.client.main_menu = main_menu
+        
+    def set_option_menu(self, option_menu):
+        self.client.option_menu = option_menu
 
-class Controller:
-    def __init__(self, model, view):
-        self.model = model
-        self.view = view
-
+    def start_to_convert(self):
+        self.client.create_menu_info_json()
 
 class Main():
-    View.create_main_manu_page()
     client = Client()
+    view_con = ViewController(client)
+    view_con.create_main_manu_page()
 
-
+    
 if __name__ == "__main__":
     Main()
