@@ -5,6 +5,7 @@ from tkinter import messagebox
 import socket
 import os
 import json
+import threading
 
 class Client:
     def __init__(self):
@@ -18,12 +19,12 @@ class Client:
         self.main_menu = None
         self.option_menu = None
         
-    def connect(self):
+    def connect(self,event):
         self.sock.connect((self.server_address, self.server_port))
 
         menu_info_json = self.create_menu_info_json()
         self.send_menu_info(menu_info_json)
-        self.send_video()
+        self.send_video(event)
     
     def create_menu_info_json(self):
         menu_info = {
@@ -43,7 +44,7 @@ class Client:
         self.sock.sendall(len(json_file_bytes).to_bytes(DATA_SIZE,"big"))
         self.sock.sendall(json_file_bytes)
     
-    def send_video(self):
+    def send_video(self,event):
         print("Sending video...")
         
         with open(self.file_path, "rb") as video:
@@ -54,14 +55,15 @@ class Client:
             
         print("Done sending...")
         
-        self.wait_to_convert()
+        self.wait_to_convert(event)
         
-    def wait_to_convert(self):
+    def wait_to_convert(self,event):
         STREAM_RATE = 4096
         
         while True:
             message = self.sock.recv(STREAM_RATE).decode("utf-8")
             if message == "done":
+                event.set()
                 break
     
     def tell_server_want_to_download(self):
@@ -258,14 +260,21 @@ class ViewController:
         mainframe.columnconfigure(0, weight=1)
         mainframe.rowconfigure(0, weight=1)
         
-        progressbar = ttk.Progressbar(mainframe,orient=HORIZONTAL,mode='indeterminate')
-        progressbar.grid(column=0,row=0,sticky=(N, W, E, S))
+        progressbar = ttk.Progressbar(mainframe,length=200,orient=HORIZONTAL,mode='indeterminate')
+        progressbar.grid(column=0,row=0)
         progressbar.start(10)
+
+        event = threading.Event()
+
+        connect_thread = threading.Thread(target=self.client.connect,args=[event])
+        connect_thread.start()
+
+        create_compress_option_window_thread = threading.Thread(target=self.create_download_window,args=[prosessing_window,event])
+        create_compress_option_window_thread.start()
         
-        self.client.connect()
-        # self.create_download_window(prosessing_window)
-        
-    def create_download_window(self,prosessing_window):
+
+    def create_download_window(self,prosessing_window,event):
+        event.wait()
         prosessing_window.destroy()
         download_window = self.create_new_window("処理完了")
         
