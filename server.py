@@ -16,9 +16,8 @@ class Server:
         connect, address = self.sock.accept()
         print("Connected by", address)
         
-        while True:
-            menu_info =  self.receive_menu_info(connect)
-            self.receive_video(connect,menu_info)
+        menu_info =  self.receive_menu_info(connect)
+        self.receive_video(connect,menu_info)
 
     def receive_menu_info(self,connect):
         DATA_SIZE = 4
@@ -51,14 +50,14 @@ class Server:
         
     def convert_video(self,file_name,connect):
         level = 40
-
+        output_file_name = str(level) + "-" + file_name
         print("start to convert the video")
-        compress_command = f"ffmpeg -i {file_name} -c:v libx264 -crf {level} -preset medium -tune zerolatency -c:a copy {file_name}-{level}.mp4"
+        compress_command = f"ffmpeg -i {file_name} -c:v libx264 -crf {level} -preset medium -tune zerolatency -c:a copy {output_file_name}"
         
         subprocess.run(compress_command,shell=True)
         print("end converting")
         
-        self.report_to_end_converting(connect,file_name)
+        self.report_to_end_converting(connect,output_file_name)
     
     def report_to_end_converting(self,connect,file_name):
         message = "done"
