@@ -11,31 +11,31 @@ class Client:
     def __init__(self):
         self.BUFFER_SIZE = 4096
         self.sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        self.socket_connected = False
         self.server_address = "127.0.0.1"
         self.server_port = 9999
         self.file_path = None
-        self.file_name = None
-        self.file_extension = None
-        self.main_menu = None
-        self.option_menu = None
+        self.menu_info = {
+            "file_name": None,
+            "file_extension": None,
+            "main_menu": None,
+            "option_menu":None
+        }
         
     def connect(self,event):
         self.sock.connect((self.server_address, self.server_port))
+        self.socket_connected = True
 
+        self.handle_send_menu_info_and_video(event)
+
+    def handle_send_menu_info_and_video(self,event):
         menu_info_json = self.create_menu_info_json()
         self.send_menu_info(menu_info_json)
         self.send_video(event)
     
     def create_menu_info_json(self):
-        menu_info = {
-            "file_name": self.file_name,
-            "file_extension": self.file_extension,
-            "main_menu": self.main_menu,
-            "option_menu":self.option_menu
-        }
-
-        print(menu_info)
-        return json.dumps(menu_info)
+        print(self.menu_info)
+        return json.dumps(self.menu_info)
     
     def send_menu_info(self,json_file):
         print("sending menu info ...")
@@ -66,37 +66,43 @@ class Client:
                 event.set()
                 break
     
-    def tell_server_want_to_download(self):
+    def tell_server_want_to_download(self,event):
         message = "download"
         self.sock.sendall(message.encode("utf-8"))
         
-        self.download_video()
+        self.download_video(event)
         
-    def download_video(self):
+    def download_video(self,event):
         STREAM_RATE = 4096
         data_length = int.from_bytes(self.sock.recv(STREAM_RATE),"big")
         download_dir_path = os.path.join(os.getenv('USERPROFILE'), 'Downloads') if os.name  == "nt" else os.path.expanduser('~/Downloads')
-        download_video_full_path = os.path.join(download_dir_path,self.file_name) + self.file_extension
+        download_video_full_path_without_extension = os.path.join(download_dir_path,self.menu_info["file_name"])
         
-        try:
-            with open(download_video_full_path, "xb") as video:
-                print("downloading video...")
-                while data_length > 0:
-                    data = self.sock.recv(STREAM_RATE if STREAM_RATE >= data_length else data_length)
-                    video.write(data)
-                    data_length -= len(data)
-                    print(data_length)
+        while True:
+            try:
+                with open(download_video_full_path_without_extension + self.menu_info["file_extension"], "xb") as video:
+                    print("downloading video...")
+                    while data_length > 0:
+                        data = self.sock.recv(STREAM_RATE if STREAM_RATE > data_length else data_length)
+                        video.write(data)
+                        data_length -= len(data)
+                        print(data_length)
 
-            print("Done downloading ...")
-            
-        except FileExistsError:
-            pass
+                print("Done downloading ...")
+                event.set()
+                break
+
+            except FileExistsError:
+                number_for_overwrite = 1
+                download_video_full_path_without_extension += str(f"({number_for_overwrite})")
+                number_for_overwrite += 1
+
 
 class ViewController:
     def __init__(self,client):
         self.root = Tk()
         self.client = client
-        self.file_name = StringVar()
+        self.file_name_for_display = StringVar()
 
     def create_main_manu_page(self):
         # rootの構成
@@ -140,7 +146,7 @@ class ViewController:
         ttk.Button(upload_btn_frame, text="選択" ,command=lambda: self.prompt_video_file()).grid(column=0, row=0,sticky=S)
 
         # 選択した動画名の表示部分
-        file_name_label = ttk.Label(upload_btn_frame, textvariable=self.file_name)
+        file_name_label = ttk.Label(upload_btn_frame, textvariable=self.file_name_for_display)
         file_name_label.grid(column=0, row=1,sticky=N)
         
         # 圧縮ボタンの部分
@@ -148,7 +154,7 @@ class ViewController:
         compress_frame.grid(column=0, row=0)
         compress_frame.columnconfigure(0, weight=1)
         compress_frame.rowconfigure(0, weight=1)
-        ttk.Button(compress_frame,text="圧縮",command=lambda: [self.confirm_selected_video(),self.set_main_menu("圧縮")]).grid(column=0, row=0)
+        ttk.Button(compress_frame,text="圧縮",command=lambda: [self.confirm_selected_video(),self.set_main_menu_dict("圧縮")]).grid(column=0, row=0)
         
         # # 解像度ボタンの部分
         resolution_frame = ttk.Frame(lower_half_frame)
@@ -184,21 +190,21 @@ class ViewController:
         file_extension = os.path.splitext(file_name_with_extension)[1]
 
         self.set_file_path(file_path)
-        self.set_file_name(file_name_without_extension)
-        self.set_file_extension(file_extension)
+        self.set_file_name_dict(file_name_without_extension)
+        self.set_file_extension_dict(file_extension)
         self.display_file_name(file_name_with_extension)
 
     def set_file_path(self, file_path):
         self.client.file_path = file_path
         
-    def set_file_name(self,file_name):
-        self.client.file_name = file_name
+    def set_file_name_dict(self,file_name):
+        self.client.menu_info["file_name"] = file_name
     
-    def set_file_extension(self,file_extension):
-        self.client.file_extension = file_extension
+    def set_file_extension_dict(self,file_extension):
+        self.client.menu_info["file_extension"] = file_extension
     
     def display_file_name(self, file_name):
-        self.file_name.set(file_name)
+        self.file_name_for_display.set(file_name)
         
     def create_new_window(self,title):
         option_window = Toplevel(self.root)
@@ -211,8 +217,8 @@ class ViewController:
         return option_window
     
     def confirm_selected_video(self):
-        if self.file_name.get() == "":
-            messagebox.showerror(message="ファイルを選択してください")
+        if self.file_name_for_display.get() == "":
+            messagebox.showerror(title="error",message="ファイルを選択してください")
         else:
             self.create_compress_option_window()
             
@@ -239,21 +245,35 @@ class ViewController:
         low.grid(column=0, row=2)
 
         # start button
-        ttk.Button(mainframe, text="start",command=lambda:[self.set_option_menu(compress_level.get()),self.start_to_convert(option_window)]).grid(column=0, row=3)
+        ttk.Button(mainframe, text="start",command=lambda:[self.set_option_menu_dict(compress_level.get()),self.start_to_convert(option_window)]).grid(column=0, row=3)
 
         # main manuの操作ができないように設定して、フォーカスを新しいウィンドウに移す
         option_window.grab_set()
         option_window.focus_set()
     
-    def set_main_menu(self, main_menu):
-        self.client.main_menu = main_menu
+    def set_main_menu_dict(self, main_menu):
+        self.client.menu_info["main_menu"] = main_menu
         
-    def set_option_menu(self, option_menu):
-        self.client.option_menu = option_menu
+    def set_option_menu_dict(self, option_menu):
+        self.client.menu_info["option_menu"] = option_menu
 
     def start_to_convert(self,option_window):
         option_window.destroy()
-        prosessing_window = self.create_new_window("処理中")
+        prosessing_window = self.display_progressbar("処理中")
+
+        event = threading.Event()
+        if self.client.socket_connected == False:
+            connect_thread = threading.Thread(target=self.client.connect,args=[event])
+            connect_thread.start()
+        else:
+            connected_thread = threading.ThreadError(target=self.client.handle_send_menu_info_and_video,args=[event])
+            connected_thread.start()
+
+        create_compress_option_window_thread = threading.Thread(target=self.create_download_window,args=[prosessing_window,event])
+        create_compress_option_window_thread.start()
+        
+    def display_progressbar(self,title):
+        prosessing_window = self.create_new_window(title)
         
         mainframe = ttk.Frame(prosessing_window,padding=50)
         mainframe.grid(column=0, row=0,sticky=(N, W, E, S))
@@ -263,29 +283,27 @@ class ViewController:
         progressbar = ttk.Progressbar(mainframe,length=200,orient=HORIZONTAL,mode='indeterminate')
         progressbar.grid(column=0,row=0)
         progressbar.start(10)
-
-        event = threading.Event()
-
-        connect_thread = threading.Thread(target=self.client.connect,args=[event])
-        connect_thread.start()
-
-        create_compress_option_window_thread = threading.Thread(target=self.create_download_window,args=[prosessing_window,event])
-        create_compress_option_window_thread.start()
         
+        return prosessing_window
 
     def create_download_window(self,prosessing_window,event):
-        event.wait()
-        prosessing_window.destroy()
+        self.wait_and_destory_open_window(prosessing_window,event)
         download_window = self.create_new_window("処理完了")
         
         mainframe = ttk.Frame(download_window)
         mainframe.grid(column=0, row=0,sticky=(N, W, E, S))
         mainframe.columnconfigure(0, weight=1)
         mainframe.rowconfigure(0, weight=1)
+
+        event = threading.Event()
+        request_download_thread  = threading.Thread(target=self.client.tell_server_want_to_download,args=[event])
         
-        download_btn = ttk.Button(mainframe, text="Download",command=lambda: self.client.tell_server_want_to_download()).grid(column=0, row=0)
-        
-        
+        download_btn = ttk.Button(mainframe, text="Download",command=lambda:[self.wait_and_destory_open_window(self.display_progressbar("ダウンロード中"),event),request_download_thread.start(),download_window.destroy()]).grid(column=0, row=0)
+    
+   
+    def wait_and_destory_open_window(self, open_window,event):
+        event.wait()
+        open_window.destroy()
 
 class Main():
     client = Client()
