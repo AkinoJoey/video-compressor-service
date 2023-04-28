@@ -16,8 +16,9 @@ class Server:
         connect, address = self.sock.accept()
         print("Connected by", address)
         
-        menu_info =  self.receive_menu_info(connect)
-        self.receive_video(connect,menu_info)
+        while True:
+            menu_info =  self.receive_menu_info(connect)
+            self.receive_video(connect,menu_info)
 
     def receive_menu_info(self,connect):
         DATA_SIZE = 4
@@ -36,7 +37,7 @@ class Server:
         try:
             with open(file_name, "xb") as video:
                 while data_length > 0:
-                    data = connect.recv(STREAM_RATE if STREAM_RATE >= data_length else data_length)
+                    data = connect.recv(STREAM_RATE if STREAM_RATE > data_length else data_length)
                     video.write(data)
                     data_length -= len(data)
                     print(data_length)
