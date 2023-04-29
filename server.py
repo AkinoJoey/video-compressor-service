@@ -1,6 +1,7 @@
 import socket
 import subprocess
 import json
+import sys
 
 class Server:
     def __init__(self):
@@ -53,7 +54,7 @@ class Server:
         level = 40
         output_file_name = str(level) + "-" + file_name
         print("start to convert the video")
-        compress_command = f"ffmpeg -i {file_name} -c:v libx264 -crf {level} -preset medium -tune zerolatency -c:a copy {output_file_name}"
+        compress_command = f"ffmpeg -n -i {file_name} -c:v libx264 -crf {level} -preset medium -tune zerolatency -c:a copy {output_file_name}"
         
         subprocess.run(compress_command,shell=True)
         print("end converting")
@@ -70,7 +71,7 @@ class Server:
         STREAM_RATE = 4096
         
         while True:
-            message = connect.recv(STREAM_RATE).decode("utf-8")
+            message = connect.recv(STREAM_RATE).decode("utf-8",errors='ignore')
             if message == "download":
                 self.send_converted_video(file_name,connect)
                 break
