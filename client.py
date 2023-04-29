@@ -81,8 +81,6 @@ class Client:
         file_name =  self.check_for_same_name_and_rename(download_video_full_path_without_extension,file_extension)
         
         try:
-            
-
             with open(file_name, "xb") as video:
                 print("downloading video...")
                 while data_length > 0:
@@ -163,7 +161,7 @@ class ViewController:
         compress_frame.grid(column=0, row=0)
         compress_frame.columnconfigure(0, weight=1)
         compress_frame.rowconfigure(0, weight=1)
-        ttk.Button(compress_frame,text="圧縮",command=lambda: [self.confirm_selected_video(),self.set_main_menu_dict("圧縮")]).grid(column=0, row=0)
+        ttk.Button(compress_frame,text="圧縮",command=lambda: [self.confirm_selected_video(),self.set_main_menu_dict("compress")]).grid(column=0, row=0)
         
         # # 解像度ボタンの部分
         resolution_frame = ttk.Frame(lower_half_frame)
