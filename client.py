@@ -77,27 +77,36 @@ class Client:
         data_length = int.from_bytes(self.sock.recv(STREAM_RATE),"big")
         download_dir_path = os.path.join(os.getenv('USERPROFILE'), 'Downloads') if os.name  == "nt" else os.path.expanduser('~/Downloads')
         download_video_full_path_without_extension = os.path.join(download_dir_path,self.menu_info["file_name"])
+        file_extension = self.menu_info["file_extension"]
+        file_name =  self.check_for_same_name_and_rename(download_video_full_path_without_extension,file_extension)
         
-        while True:
-            try:
-                with open(download_video_full_path_without_extension + self.menu_info["file_extension"], "xb") as video:
-                    print("downloading video...")
-                    while data_length > 0:
-                        data = self.sock.recv(STREAM_RATE if STREAM_RATE > data_length else data_length)
-                        video.write(data)
-                        data_length -= len(data)
-                        print(data_length)
+        try:
+            
 
-                print("Done downloading ...")
-                event.set()
-                break
+            with open(file_name, "xb") as video:
+                print("downloading video...")
+                while data_length > 0:
+                    data = self.sock.recv(STREAM_RATE if STREAM_RATE > data_length else data_length)
+                    video.write(data)
+                    data_length -= len(data)
+                    print(data_length)
 
-            except FileExistsError:
-                number_for_overwrite = 1
-                download_video_full_path_without_extension += str(f"({number_for_overwrite})")
-                number_for_overwrite += 1
+            print("Done downloading ...")
+            event.set()
 
+        except Exception as e:
+            print("Download error:" + str(e))
+    
+    def check_for_same_name_and_rename(self,download_video_full_path_without_extension,file_extension):
+        file_name = download_video_full_path_without_extension + file_extension
+        number_for_file_name_overwrite = 1
 
+        while os.path.isfile(file_name):
+                file_name = download_video_full_path_without_extension + " " + str(f"({number_for_file_name_overwrite})") + file_extension
+                number_for_file_name_overwrite += 1
+                
+        return file_name
+                
 class ViewController:
     def __init__(self,client):
         self.root = Tk()
@@ -262,11 +271,12 @@ class ViewController:
         prosessing_window = self.display_progressbar("処理中")
 
         event = threading.Event()
+        
         if self.client.socket_connected == False:
             connect_thread = threading.Thread(target=self.client.connect,args=[event])
             connect_thread.start()
         else:
-            connected_thread = threading.ThreadError(target=self.client.handle_send_menu_info_and_video,args=[event])
+            connected_thread = threading.Thread(target=self.client.handle_send_menu_info_and_video,args=[event])
             connected_thread.start()
 
         create_compress_option_window_thread = threading.Thread(target=self.create_download_window,args=[prosessing_window,event])
@@ -287,7 +297,7 @@ class ViewController:
         return prosessing_window
 
     def create_download_window(self,prosessing_window,event):
-        self.wait_and_destory_open_window(prosessing_window,event)
+        self.wait_for_destorying_open_window(prosessing_window,event)
         download_window = self.create_new_window("処理完了")
         
         mainframe = ttk.Frame(download_window)
@@ -298,12 +308,15 @@ class ViewController:
         event = threading.Event()
         request_download_thread  = threading.Thread(target=self.client.tell_server_want_to_download,args=[event])
         
-        download_btn = ttk.Button(mainframe, text="Download",command=lambda:[self.wait_and_destory_open_window(self.display_progressbar("ダウンロード中"),event),request_download_thread.start(),download_window.destroy()]).grid(column=0, row=0)
-    
+        download_btn = ttk.Button(mainframe, text="Download",command=lambda:[download_window.destroy(),request_download_thread.start(),self.wait_for_destorying_open_window(self.display_progressbar("ダウンロード中"),event),self.wait_and_report_to_complete_work("ダウンロードが完了しました。",event)]).grid(column=0, row=0)
    
-    def wait_and_destory_open_window(self, open_window,event):
+    def wait_for_destorying_open_window(self, open_window,event):
         event.wait()
         open_window.destroy()
+    
+    def wait_and_report_to_complete_work(self,message,event):
+        event.wait()
+        messagebox.showinfo(message=message)
 
 class Main():
     client = Client()
