@@ -46,12 +46,21 @@ class Client:
     
     def send_video(self,event):
         print("Sending video...")
+        print(self.file_path)
+        STREAM_RATE = 4096
         
         with open(self.file_path, "rb") as video:
-            data = video.read()
-            STREAM_RATE = 4096
-            self.sock.sendall(len(data).to_bytes(STREAM_RATE,"big"))
-            self.sock.sendall(data)
+            video.seek(0, os.SEEK_END)
+            data_size = video.tell()
+            video.seek(0,0)
+            self.sock.sendall(data_size.to_bytes(STREAM_RATE,"big"))
+            
+            data = video.read(4096)
+            
+            while data:
+                print("sending...")
+                self.sock.send(data)
+                data = video.read(4096)
             
         print("Done sending...")
         
@@ -84,7 +93,7 @@ class Client:
             with open(file_name, "xb") as video:
                 print("downloading video...")
                 while data_length > 0:
-                    data = self.sock.recv(STREAM_RATE if STREAM_RATE > data_length else data_length)
+                    data = self.sock.recv(data_length if data_length <= STREAM_RATE else STREAM_RATE)
                     video.write(data)
                     data_length -= len(data)
                     print(data_length)
