@@ -124,7 +124,7 @@ ffmpeg -i test.mp4 -c:v libx264 -crf 28 -preset medium -tune zerolatency -c:a co
 選択肢 HD, FHD,4k
 ユーザーの自由入力
 
-ffmpeg -i {output_file_name} -filter:v scale= {tate}:{yoko} -c:a copy {output_file_name}.mp4
+ffmpeg -i {output_file_name} -filter:v scale= {width}:{height} -c:a copy {output_file_name}.mp4
 ffmpeg -i test-1920x1080-30fps.mp4 -filter:v scale=1280:720 -c:a copy test-1280x720-30fps.mp4
 
 ・縦横比を変更
@@ -136,6 +136,15 @@ ffmpeg -i my_video.mp4  -c copy -aspect 4:3 new_my_video.mp4
 ffmpeg -i video.mp4
 
 ・gif or webm
+開始時間
+終了時間
+fps
+width
+アスペクト比を維持する
+
+height
+アスペクト比を維持する
+
 ffmpeg -ss 00:00:20 -i sample.mp4 -to 10 -r 10 -vf scale=300:-1 sample.gif
 -ss は GIF の開始位置、-to は終了位置、-r はフレームレート、-vf は一定サイズに拡大するフィルタグラフです。
 
