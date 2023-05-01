@@ -27,7 +27,7 @@ class Server:
         try:
             while True:
                 menu_info =  self.receive_menu_info(connect)
-                self.receive_video(connect,menu_info)
+                self.check_video_exists(connect,menu_info)
         
         except Exception as e:
             print("Error" + str(e))
@@ -44,14 +44,30 @@ class Server:
         print(json_data)
         return json_data
     
-    def receive_video(self,connect,menu_info):
+    def check_video_exists(self,connect,menu_info):
+        file_name = self.temp_strage_dir_path + menu_info["file_name"] + menu_info["file_extension"]
+
+        if os.path.exists(file_name):
+            self.replay_to_client(connect, "No need")
+            self.convert_video(connect,menu_info,file_name)
+        else:
+            self.replay_to_client(connect, "need")
+            self.receive_video(connect,menu_info,file_name)
+
+    def replay_to_client(self,connect,message):
+        STREAM_RATE = 4
+        message_bytes = message.encode("utf-8")
+        connect.sendall(len(message_bytes).to_bytes(STREAM_RATE,"big"))
+        connect.sendall(message_bytes)
+        print(message_bytes)
+        
+    def receive_video(self,connect,menu_info,file_name):
         STREAM_RATE = 4096
         data_length = int.from_bytes(connect.recv(STREAM_RATE),"big")
         print(data_length)
-        original_file_name = self.temp_strage_dir_path + menu_info["file_name"] + menu_info["file_extension"]
         
         try:
-            with open(original_file_name, "xb+") as video:
+            with open(file_name, "xb+") as video:
                 while data_length > 0:
                     data = connect.recv(data_length if data_length <= STREAM_RATE else STREAM_RATE)
                     video.write(data)
@@ -62,9 +78,9 @@ class Server:
             
         except FileExistsError:
             pass
-        
+
             
-        self.convert_video(connect,menu_info,original_file_name)
+        self.convert_video(connect,menu_info,file_name)
         
     def convert_video(self,connect,menu_info,original_file_name):
         output_file_name = self.temp_strage_dir_path + self.create_output_file_name(menu_info)
@@ -110,10 +126,11 @@ class Server:
         self.wait_for_pushing_download(connect,file_name)
         
     def wait_for_pushing_download(self,connect,file_name):
-        STREAM_RATE = 4096
+        STREAM_RATE = 4
         
         while True:
-            message = connect.recv(STREAM_RATE).decode("utf-8",errors='ignore')
+            message_length = int.from_bytes(connect.recv(STREAM_RATE),"big")
+            message = connect.recv(message_length).decode("utf-8")
             if message == "download":
                 self.send_converted_video(file_name,connect)
                 break
@@ -136,7 +153,12 @@ class Server:
                 data = video.read(4096)
             
         print("Done sending...")
-        
+
+        self.delete_video(file_name)
+
+    def delete_video(self,file_name):
+        os.remove(file_name)
+        ("Deleted...")
             
 class Main():
     server = Server()
