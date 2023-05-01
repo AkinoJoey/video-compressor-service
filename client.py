@@ -26,23 +26,31 @@ class Client:
         self.sock.connect((self.server_address, self.server_port))
         self.socket_connected = True
 
-        self.handle_send_menu_info_and_video(event)
-
-    def handle_send_menu_info_and_video(self,event):
-        menu_info_json = self.create_menu_info_json()
-        self.send_menu_info(menu_info_json)
-        self.send_video(event)
+        self.send_menu_info(event)
     
-    def create_menu_info_json(self):
-        print(self.menu_info)
-        return json.dumps(self.menu_info)
-    
-    def send_menu_info(self,json_file):
+    def send_menu_info(self,event):
         print("sending menu info ...")
+        json_file = json.dumps(self.menu_info)
         DATA_SIZE = 4
         json_file_bytes = json_file.encode("utf-8")
         self.sock.sendall(len(json_file_bytes).to_bytes(DATA_SIZE,"big"))
         self.sock.sendall(json_file_bytes)
+
+        self.wait_for_video_send(event)
+    
+    def wait_for_video_send(self,event):
+        STREAM_RATE = 4
+        
+        message_from_server_length = int.from_bytes(self.sock.recv(STREAM_RATE),"big")
+        message_from_server = self.sock.recv(message_from_server_length).decode("utf-8")
+        print(message_from_server)
+
+        if message_from_server == "need":
+            self.send_video(event)
+        elif message_from_server == "No need":
+            self.wait_to_convert(event)
+        else:
+            raise ValueError("error")
     
     def send_video(self,event):
         print("Sending video...")
@@ -76,12 +84,20 @@ class Client:
                 break
     
     def tell_server_want_to_download(self,event):
-        message = "download"
-        self.sock.sendall(message.encode("utf-8"))
+        STREAM_RATE = 4
+        message_bytes = "download".encode("utf-8")
+        self.sock.sendall(len(message_bytes).to_bytes(STREAM_RATE,"big"))
+        self.sock.sendall(message_bytes)
+        
+        print(threading.active_count())
+        print(threading.current_thread())
         
         self.download_video(event)
         
     def download_video(self,event):
+        print(threading.active_count())
+        print(threading.current_thread())
+
         STREAM_RATE = 4096
         data_length = int.from_bytes(self.sock.recv(STREAM_RATE),"big")
         download_dir_path = os.path.join(os.getenv('USERPROFILE'), 'Downloads') if os.name  == "nt" else os.path.expanduser('~/Downloads')
@@ -96,7 +112,7 @@ class Client:
                     data = self.sock.recv(data_length if data_length <= STREAM_RATE else STREAM_RATE)
                     video.write(data)
                     data_length -= len(data)
-                    print(data_length)
+                    # print(data_length)
 
             print("Done downloading ...")
             event.set()
@@ -283,7 +299,7 @@ class ViewController:
             connect_thread = threading.Thread(target=self.client.connect,args=[event])
             connect_thread.start()
         else:
-            connected_thread = threading.Thread(target=self.client.handle_send_menu_info_and_video,args=[event])
+            connected_thread = threading.Thread(target=self.client.send_menu_info,args=[event])
             connected_thread.start()
 
         create_compress_option_window_thread = threading.Thread(target=self.create_download_window,args=[prosessing_window,event])
@@ -301,6 +317,7 @@ class ViewController:
         progressbar.grid(column=0,row=0)
         progressbar.start(10)
         
+        print("display progress bar....")
         return prosessing_window
 
     def create_download_window(self,prosessing_window,event):
@@ -315,7 +332,12 @@ class ViewController:
         event = threading.Event()
         request_download_thread  = threading.Thread(target=self.client.tell_server_want_to_download,args=[event])
         
-        download_btn = ttk.Button(mainframe, text="Download",command=lambda:[download_window.destroy(),request_download_thread.start(),self.wait_for_destorying_open_window(self.display_progressbar("ダウンロード中"),event),self.wait_and_report_to_complete_work("ダウンロードが完了しました。",event)]).grid(column=0, row=0)
+        download_btn = ttk.Button(mainframe, text="Download",command=lambda:[
+            download_window.destroy(),
+            request_download_thread.start(),
+            self.wait_for_destorying_open_window(self.display_progressbar("ダウンロード中"),event),
+            self.wait_and_report_to_complete_work("ダウンロードが完了しました。",event)
+            ]).grid(column=0, row=0)
    
     def wait_for_destorying_open_window(self, open_window,event):
         event.wait()
