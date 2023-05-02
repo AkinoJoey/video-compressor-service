@@ -31,17 +31,20 @@ class Client:
     def send_menu_info(self,event):
         print("sending menu info ...")
         json_file = json.dumps(self.menu_info)
-        DATA_SIZE = 4
         json_file_bytes = json_file.encode("utf-8")
-        self.sock.sendall(len(json_file_bytes).to_bytes(DATA_SIZE,"big"))
+
+        header = self.protocol_make_header(len(json_file_bytes))
+        self.sock.sendall(header)
         self.sock.sendall(json_file_bytes)
 
         self.wait_for_video_send(event)
     
-    def wait_for_video_send(self,event):
+    def protocol_make_header(self,data_length):
         STREAM_RATE = 4
-        
-        message_from_server_length = int.from_bytes(self.sock.recv(STREAM_RATE),"big")
+        return data_length.to_bytes(STREAM_RATE,"big")
+
+    def wait_for_video_send(self,event):
+        message_from_server_length = self.protocol_extract_data_length_from_header()
         message_from_server = self.sock.recv(message_from_server_length).decode("utf-8")
         print(message_from_server)
 
@@ -51,6 +54,10 @@ class Client:
             self.wait_to_convert(event)
         else:
             raise ValueError("error")
+        
+    def protocol_extract_data_length_from_header(self):
+        STREAM_RATE = 4
+        return int.from_bytes(self.sock.recv(STREAM_RATE),"big")
     
     def send_video(self,event):
         print("Sending video...")
@@ -61,32 +68,30 @@ class Client:
             video.seek(0, os.SEEK_END)
             data_size = video.tell()
             video.seek(0,0)
-            self.sock.sendall(data_size.to_bytes(STREAM_RATE,"big"))
+            header = self.protocol_make_header(data_size)
+            self.sock.sendall(header)
             
-            data = video.read(4096)
+            data = video.read(STREAM_RATE)
             
             while data:
                 print("sending...")
                 self.sock.send(data)
-                data = video.read(4096)
+                data = video.read(STREAM_RATE)
             
         print("Done sending...")
         
         self.wait_to_convert(event)
         
     def wait_to_convert(self,event):
-        STREAM_RATE = 4096
-        
-        while True:
-            message = self.sock.recv(STREAM_RATE).decode("utf-8")
-            if message == "done":
-                event.set()
-                break
+        message_length = self.protocol_extract_data_length_from_header()
+        message = self.sock.recv(message_length).decode("utf-8")
+        if message == "done":
+            event.set()
     
     def tell_server_want_to_download(self,event):
-        STREAM_RATE = 4
         message_bytes = "download".encode("utf-8")
-        self.sock.sendall(len(message_bytes).to_bytes(STREAM_RATE,"big"))
+        header = self.protocol_make_header(len(message_bytes))
+        self.sock.sendall(header)
         self.sock.sendall(message_bytes)
         
         print(threading.active_count())
@@ -99,7 +104,7 @@ class Client:
         print(threading.current_thread())
 
         STREAM_RATE = 4096
-        data_length = int.from_bytes(self.sock.recv(STREAM_RATE),"big")
+        data_length = self.protocol_extract_data_length_from_header()
         download_dir_path = os.path.join(os.getenv('USERPROFILE'), 'Downloads') if os.name  == "nt" else os.path.expanduser('~/Downloads')
         download_video_full_path_without_extension = os.path.join(download_dir_path,self.menu_info["file_name"])
         file_extension = self.menu_info["file_extension"]
@@ -165,9 +170,8 @@ class ViewController:
         lower_half_frame.columnconfigure(0, weight=1)
         lower_half_frame.columnconfigure(1, weight=1)
         lower_half_frame.columnconfigure(2, weight=1)
-        lower_half_frame.columnconfigure(3, weight=1)
-        lower_half_frame.columnconfigure(4, weight=1)
         lower_half_frame.rowconfigure(0, weight=1)
+        lower_half_frame.rowconfigure(1, weight=1)
         
         # 動画選択ボタン
         upload_btn_frame = ttk.Frame(upper_half_frame)
@@ -175,7 +179,7 @@ class ViewController:
         upload_btn_frame.columnconfigure(0,weight=1)
         upload_btn_frame.rowconfigure(0,weight=2)
         upload_btn_frame.rowconfigure(1,weight=1)
-        ttk.Button(upload_btn_frame, text="選択" ,command=lambda: self.prompt_video_file()).grid(column=0, row=0,sticky=S)
+        ttk.Button(upload_btn_frame, text="選択" ,command=self.prompt_video_file).grid(column=0, row=0,sticky=S)
 
         # 選択した動画名の表示部分
         file_name_label = ttk.Label(upload_btn_frame, textvariable=self.file_name_for_display)
@@ -186,12 +190,18 @@ class ViewController:
         compress_frame.grid(column=0, row=0)
         compress_frame.columnconfigure(0, weight=1)
         compress_frame.rowconfigure(0, weight=1)
-        ttk.Button(compress_frame,text="圧縮",command=lambda: [self.confirm_selected_video(),self.set_main_menu_dict("compress")]).grid(column=0, row=0)
+        ttk.Button(compress_frame,text="圧縮",command=lambda:[
+            self.confirm_selected_video("compress"),
+            self.set_main_menu_dict("compress")
+            ]).grid(column=0, row=0)
         
         # # 解像度ボタンの部分
         resolution_frame = ttk.Frame(lower_half_frame)
         resolution_frame.grid(column=1, row=0)
-        ttk.Button(resolution_frame,text="解像度").grid(column=0, row=0)
+        ttk.Button(resolution_frame,text="解像度",command=lambda:[
+            self.confirm_selected_video("resolution"),
+            self.set_main_menu_dict("resolution")
+        ]).grid(column=0, row=0)
         
         # # 縦横比ボタンの部分
         ratio_frame = ttk.Frame(lower_half_frame)
@@ -200,13 +210,18 @@ class ViewController:
         
         # # to Audioボタンの部分
         to_audio_frame = ttk.Frame(lower_half_frame)
-        to_audio_frame.grid(column=3, row=0)
+        to_audio_frame.grid(column=0, row=1)
         ttk.Button(to_audio_frame,text="to Audio").grid(column=0, row=0)
         
-        # # GIF WEBMボタンの部分
+        # # WEBMボタンの部分
         gif_webm_frame = ttk.Label(lower_half_frame)
-        gif_webm_frame.grid(column=4, row=0)
-        ttk.Button(gif_webm_frame, text="to GIF or WEBM").grid(column=0, row=0)
+        gif_webm_frame.grid(column=1, row=1)
+        ttk.Button(gif_webm_frame, text="to GIF").grid(column=0, row=0)
+
+        # # WEBMボタンの部分
+        gif_webm_frame = ttk.Label(lower_half_frame)
+        gif_webm_frame.grid(column=2, row=1)
+        ttk.Button(gif_webm_frame, text="to WEBM").grid(column=0, row=0)
 
         self.root.mainloop()
     
@@ -225,6 +240,18 @@ class ViewController:
         self.set_file_name_dict(file_name_without_extension)
         self.set_file_extension_dict(file_extension)
         self.display_file_name(file_name_with_extension)
+    
+    def confirm_selected_video(self,selected_main_manu):
+        if self.file_name_for_display.get() == "":
+            messagebox.showerror(title="error",message="ファイルを選択してください")
+        else:
+            if selected_main_manu == "compress":
+                self.create_compress_option_window()
+            elif selected_main_manu == "resolution":
+                self.create_resolution_option_window()
+    
+    def set_main_menu_dict(self, main_menu):
+        self.client.menu_info["main_menu"] = main_menu
 
     def set_file_path(self, file_path):
         self.client.file_path = file_path
@@ -238,6 +265,7 @@ class ViewController:
     def display_file_name(self, file_name):
         self.file_name_for_display.set(file_name)
         
+        
     def create_new_window(self,title):
         option_window = Toplevel(self.root)
         option_window.title(title)
@@ -248,11 +276,16 @@ class ViewController:
         
         return option_window
     
-    def confirm_selected_video(self):
-        if self.file_name_for_display.get() == "":
-            messagebox.showerror(title="error",message="ファイルを選択してください")
-        else:
-            self.create_compress_option_window()
+    def create_new_window(self,title):
+        option_window = Toplevel(self.root)
+        option_window.title(title)
+        option_window.geometry("420x220")
+        option_window.resizable(False,False)
+        option_window.columnconfigure(0, weight=1)
+        option_window.rowconfigure(0, weight=1)
+        
+        return option_window
+ 
             
     def create_compress_option_window(self):
         # option_windowの作成
@@ -277,15 +310,120 @@ class ViewController:
         low.grid(column=0, row=2)
 
         # start button
-        ttk.Button(mainframe, text="start",command=lambda:[self.set_option_menu_dict(compress_level.get()),self.start_to_convert(option_window)]).grid(column=0, row=3)
+        ttk.Button(mainframe, text="start",command=lambda:[
+            self.set_option_menu_dict(compress_level.get()),
+            self.start_to_convert(option_window)
+            ]).grid(column=0, row=3)
 
         # main manuの操作ができないように設定して、フォーカスを新しいウィンドウに移す
         option_window.grab_set()
         option_window.focus_set()
     
-    def set_main_menu_dict(self, main_menu):
-        self.client.menu_info["main_menu"] = main_menu
+    def create_resolution_option_window(self):
+        option_window = self.create_new_window("解像度を選択する")
+
+        mainframe = ttk.Frame(option_window)
+        mainframe.grid(column=0, row=0,sticky=(N, W, E, S))
+        mainframe.columnconfigure(0, weight=1)
+        mainframe.rowconfigure(0, weight=1)
+        mainframe.rowconfigure(1, weight=1)
+        mainframe.rowconfigure(2, weight=1)
+
+        # # 左半分
+        # left_frame = ttk.Frame(mainframe)
+        # left_frame.grid(column=0,row=0,sticky=(N,W,E,S))
+        # left_frame.columnconfigure(0,weight=1)
+        # left_frame.rowconfigure(0,weight=1)
+        # left_frame.rowconfigure(1,weight=1)
+        # left_frame.rowconfigure(2,weight=1)
+        # format_label = ttk.Label(left_frame, text="フォーマット")
+        # format_label.grid(column=0, row=0)
+        # resolution_label = ttk.Label(left_frame, text="解像度")
+        # resolution_label.grid(column=0,row=1)
+
+        # # 右半分
+        # right_frame = ttk.Frame(mainframe)
+        # right_frame.grid(column=1, row=0,sticky=(N,W,E,S))
+        # right_frame.columnconfigure(0, weight=1)
+        # right_frame.rowconfigure(0, weight=1)
+        # right_frame.rowconfigure(1, weight=1)
+        # right_frame.rowconfigure(2, weight=1)
+        # format_textvar = StringVar()
+        # format_list= ("720p","1080p","4K","カスタム")
+        # format_combobox = ttk.Combobox(right_frame,textvariable=format_textvar,values=format_list,justify=CENTER,state="readonly")
+        # format_combobox.grid(column=0,row=0)
+        # format_combobox.set(format_list[0])        
+
+        # resolution_frame = ttk.Frame(right_frame)
+        # resolution_frame.grid(column=0, row=1,sticky=(N,W,E,S))
+        # resolution_frame.rowconfigure(0, weight=1)
+        # resolution_frame.columnconfigure(0, weight=3)
+        # resolution_frame.columnconfigure(1, weight=1)
+        # resolution_frame.columnconfigure(2, weight=3)
+
+        # width = StringVar()
+        # height = StringVar()
+        # width_entry = ttk.Entry(resolution_frame,textvariable=width)
+        # width_entry.grid(column=0,row=0)
+        # height_entry = ttk.Entry(resolution_frame,textvariable=height)
+        # height_entry.grid(column=2,row=0)
+        # x = ttk.Label(resolution_frame, text= "x")
+        # x.grid(column=1,row=0)
+
+        # # start button
+        # ttk.Button(right_frame, text="start").grid(column=0, row=2)
         
+
+        # フォーマット部分
+        format_frame = ttk.Frame(mainframe)
+        format_frame.grid(column=0, row=0,sticky=(N, W, E, S))
+        format_frame.columnconfigure(0, weight=1)
+        format_frame.columnconfigure(1, weight=1)
+        format_frame.rowconfigure(0,weight=1)
+
+        format_label = ttk.Label(format_frame, text="フォーマット")
+        format_label.grid(column=0, row=0)
+        
+        format_textvar = StringVar()
+        format_list= ("720p","1080p","4K","カスタム")
+        format_combobox = ttk.Combobox(format_frame,textvariable=format_textvar,values=format_list,justify=CENTER,state="readonly",width=10)
+        format_combobox.grid(column=1,row=0,sticky=W)
+        format_combobox.set(format_list[0])
+
+        # 解像度の部分
+        resolution_frame = ttk.Frame(mainframe)
+        resolution_frame.grid(column=0, row=1, sticky=(N,W,E,S))
+        resolution_frame.columnconfigure(0, weight=1)
+        resolution_frame.columnconfigure(1, weight=1)
+        resolution_frame.columnconfigure(2, weight=1)
+        resolution_frame.columnconfigure(3, weight=1)
+        resolution_frame.rowconfigure(0, weight=1)
+
+        resolution_label = ttk.Label(resolution_frame, text="解像度")
+        resolution_label.grid(column=0, row=0)
+        width = StringVar()
+        height = StringVar()
+        width_entry = ttk.Entry(resolution_frame,textvariable=width,width=10)
+        width_entry.grid(column=1,row=0)
+        height_entry = ttk.Entry(resolution_frame,textvariable=height,width=10)
+        height_entry.grid(column=3,row=0)
+        x = ttk.Label(resolution_frame, text= "x")
+        x.grid(column=2,row=0)
+
+        # # start button
+        ttk.Button(mainframe, text="start").grid(column=0, row=2)
+
+    def create_new_window(self,title):
+        option_window = Toplevel(self.root)
+        option_window.title(title)
+        option_window.geometry("420x220")
+        option_window.resizable(False,False)
+        option_window.columnconfigure(0, weight=1)
+        option_window.rowconfigure(0, weight=1)
+        
+        return option_window
+    
+    
     def set_option_menu_dict(self, option_menu):
         self.client.menu_info["option_menu"] = option_menu
 
