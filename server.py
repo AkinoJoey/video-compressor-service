@@ -37,13 +37,16 @@ class Server:
             shutil.rmtree(self.temp_strage_dir_path)
             
     def receive_menu_info(self,connect):
-        DATA_SIZE = 4
-        json_length = int.from_bytes(connect.recv(DATA_SIZE),"big")
+        json_length = self.protocol_extract_data_length_from_header(connect)
         json_data = json.loads(connect.recv(json_length))
         
         print(json_data)
         return json_data
     
+    def protocol_extract_data_length_from_header(self,connect):
+        STREAM_RATE = 4
+        return int.from_bytes(connect.recv(STREAM_RATE),"big")
+        
     def check_video_exists(self,connect,menu_info):
         file_name = self.temp_strage_dir_path + menu_info["file_name"] + menu_info["file_extension"]
 
@@ -55,15 +58,20 @@ class Server:
             self.receive_video(connect,menu_info,file_name)
 
     def replay_to_client(self,connect,message):
-        STREAM_RATE = 4
         message_bytes = message.encode("utf-8")
-        connect.sendall(len(message_bytes).to_bytes(STREAM_RATE,"big"))
+
+        header = self.protocol_make_header(len(message_bytes))
+        connect.sendall(header)
         connect.sendall(message_bytes)
         print(message_bytes)
+    
+    def protocol_make_header(self,data_length):
+        STREAM_RATE = 4
+        return data_length.to_bytes(STREAM_RATE,"big")
         
     def receive_video(self,connect,menu_info,file_name):
         STREAM_RATE = 4096
-        data_length = int.from_bytes(connect.recv(STREAM_RATE),"big")
+        data_length = self.protocol_extract_data_length_from_header(connect)
         print(data_length)
         
         try:
@@ -121,19 +129,17 @@ class Server:
     
     def report_to_end_converting(self,connect,file_name):
         message = "done"
+        header = self.protocol_make_header(len(message))
+        connect.sendall(header)
         connect.sendall(message.encode("utf-8"))
         
         self.wait_for_pushing_download(connect,file_name)
         
     def wait_for_pushing_download(self,connect,file_name):
-        STREAM_RATE = 4
-        
-        while True:
-            message_length = int.from_bytes(connect.recv(STREAM_RATE),"big")
-            message = connect.recv(message_length).decode("utf-8")
-            if message == "download":
-                self.send_converted_video(file_name,connect)
-                break
+        message_length = self.protocol_extract_data_length_from_header(connect)
+        message = connect.recv(message_length).decode("utf-8")
+        if message == "download":
+            self.send_converted_video(file_name,connect)
         
     def send_converted_video(self,file_name,connect):
         print("Sending video...")
@@ -143,7 +149,8 @@ class Server:
             video.seek(0, os.SEEK_END)
             data_size = video.tell()
             video.seek(0,0)
-            connect.sendall(data_size.to_bytes(STREAM_RATE,"big"))
+            header = self.protocol_make_header(data_size)
+            connect.sendall(header)
             
             data = video.read(4096)
             
