@@ -28,8 +28,9 @@ class Client:
             self.socket_connected = True
             self.send_menu_info(event)
             
-        except Exception as e:
-            ViewController.display_alert(str(e))
+        except ConnectionRefusedError:
+            error_message = "サーバーに接続できません"
+            ViewController.display_alert(error_message)
             event.set()
     
     def send_menu_info(self,event):
@@ -332,26 +333,58 @@ class ViewController:
         format_label = ttk.Label(mainframe, text="フォーマット")
         format_label.grid(column=0, row=0,columnspan=3,sticky=S)
         
-        format_textvar = StringVar()
-        format_combobox = ttk.Combobox(mainframe,cursor='hand2',textvariable=format_textvar,justify=CENTER,state="readonly",width=10)
-        format_combobox['values'] = ("720p","1080p","4K","カスタム")
-        format_combobox.set("720p")
-        format_combobox.grid(column=0,row=1,columnspan=3)
-
-        resolution_label = ttk.Label(mainframe, text="解像度")
-        resolution_label.grid(column=0, row=2,columnspan=3,sticky=S)
         width = StringVar()
         height = StringVar()
-        width_entry = ttk.Entry(mainframe,textvariable=width,width=6)
+        width.set("1280")
+        height.set("720")
+        resolution_label = ttk.Label(mainframe, text="解像度")
+        resolution_label.grid(column=0, row=2,columnspan=3,sticky=S)
+        width_entry = ttk.Entry(mainframe,textvariable=width,width=6,state="disable")
         width_entry.grid(column=0,row=3,sticky=E)
-        height_entry = ttk.Entry(mainframe,textvariable=height,width=6)
+        height_entry = ttk.Entry(mainframe,textvariable=height,width=6,state="disable")
         height_entry.grid(column=2,row=3,sticky=W)
         x = ttk.Label(mainframe, text= "x")
         x.grid(column=1,row=3)
+        
+        format_combobox = ttk.Combobox(mainframe,cursor='hand2',justify=CENTER,state="readonly",width=10)
+        format_combobox['values'] = ("720p","1080p","WQHD","4K","8K","カスタム")
+        format_combobox.current(0)
+        format_combobox.grid(column=0,row=1,columnspan=3)
+        format_combobox.bind('<<ComboboxSelected>>',lambda event:self.change_resolution(event,width,height,width_entry,height_entry))
 
         # # # start button
         ttk.Button(mainframe, text="start",cursor='hand2').grid(column=0, row=4,columnspan=3)
         
+    def change_resolution(self,event,width,height,width_entry,height_entry):
+        current_value = event.widget.get()
+
+        if current_value == "720p":
+            width.set("1280")
+            height.set("720")
+            self.set_state_of_option(width_entry,height_entry,"disable")
+        elif current_value == "1080p":
+            width.set("1920")
+            height.set("1080")
+            self.set_state_of_option(width_entry,height_entry,"disable")
+        elif current_value == "WQHD":
+            width.set("2560")
+            height.set("1440")
+            self.set_state_of_option(width_entry,height_entry,"disable")
+        elif current_value == "4K":
+            width.set("4096")
+            height.set("2160")
+            self.set_state_of_option(width_entry,height_entry,"disable")
+        elif current_value == "8K":
+            width.set("7680")
+            height.set("4320")
+            self.set_state_of_option(width_entry,height_entry,"disable")
+        else:
+            self.set_state_of_option(width_entry,height_entry,"normal")   
+    
+    def set_state_of_option(self,width_entry,height_entry,state):
+        width_entry.configure(state=state)
+        height_entry.configure(state=state)
+
     def create_new_window(self,title):
         option_window = Toplevel(self.root)
         option_window.title(title)
