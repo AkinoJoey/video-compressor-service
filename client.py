@@ -6,6 +6,7 @@ import socket
 import os
 import json
 import threading
+import re
 
 class Client:
     def __init__(self):
@@ -353,7 +354,9 @@ class ViewController:
         format_combobox.bind('<<ComboboxSelected>>',lambda event:self.change_resolution(event,width,height,width_entry,height_entry))
 
         # # # start button
-        ttk.Button(mainframe, text="start",cursor='hand2').grid(column=0, row=4,columnspan=3)
+        ttk.Button(mainframe, text="start",cursor='hand2',command=lambda:[
+            self.check_if_number(width.get(),height.get())
+            ]).grid(column=0, row=4,columnspan=3)
         
     def change_resolution(self,event,width,height,width_entry,height_entry):
         current_value = event.widget.get()
@@ -384,6 +387,16 @@ class ViewController:
     def set_state_of_option(self,width_entry,height_entry,state):
         width_entry.configure(state=state)
         height_entry.configure(state=state)
+    
+    def check_if_number(self,number1,number2):
+        pattern = '[0-9]+'
+        repatter = re.compile(pattern)
+        result1 = re.fullmatch(repatter,number1)
+        result2 = re.fullmatch(repatter,number2)
+        
+        print(number1,number2)
+        if result1 == None or result2 == None:
+            ViewController.display_alert("半角数字を入力してください")
 
     def create_new_window(self,title):
         option_window = Toplevel(self.root)
