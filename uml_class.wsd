@@ -151,3 +151,66 @@ ffmpeg -ss 00:00:20 -i sample.mp4 -to 10 -r 10 -vf scale=300:-1 sample.gif
 output name rule
 ・{original_file_name}-{main_menu}-{option_menu}{file_extenstion}
 ・test-compress-low.mp4
+
+
+compress = {
+    "file_name": "test",
+    "file_extension": ".mp4",
+    "main_menu": "compress",
+    "option_menu":"high"
+}
+
+resolution = {
+    "file_name": "test",
+    "file_extension": ".mp4",
+    "main_menu": "resolution",
+    "option_menu":{
+        "width":"1280",
+        "height":"720"
+    }
+}
+
+width-1280-height-720
+
+aspect = {
+    "file_name": "test",
+    "file_extension": ".mp4",
+    "main_menu": "aspect",
+    "option_menu":{
+        "width":"1280",
+        "height":"720"
+    }
+}
+
+audio = {
+    "file_name": "test",
+    "file_extension": ".mp4",
+    "main_menu": "audio",
+    "option_menu":None
+}
+
+to git = {
+    "file_name": "test",
+    "file_extension": ".mp4",
+    "main_menu": "git",
+    "option_menu":{
+        "start":"00:00",
+        "End":"00:10",
+        "fps":"30",
+        "width":"1280",
+        "height":"720"
+    }
+}
+
+to webm = {
+    "file_name": "test",
+    "file_extension": ".mp4",
+    "main_menu": "webm",
+    "option_menu":{
+        "start":"00:00",
+        "End":"00:10",
+        "fps":"30",
+        "width":"1280",
+        "height":"720"
+    }
+}
