@@ -33,6 +33,12 @@ class Client:
             error_message = "サーバーに接続できません"
             ViewController.display_alert(error_message)
             event.set()
+        
+        except Exception as e:
+            error_message = "Error: " + str(e)
+            ViewController.display_alert(error_message)
+            event.set()
+            
     
     def send_menu_info(self,event):
         print("sending menu info ...")
@@ -274,16 +280,6 @@ class ViewController:
     
     def display_file_name(self, file_name):
         self.file_name_for_display.set(file_name)
-    
-    def create_new_window(self,title):
-        option_window = Toplevel(self.root)
-        option_window.title(title)
-        option_window.geometry("420x220")
-        option_window.resizable(False,False)
-        option_window.columnconfigure(0, weight=1)
-        option_window.rowconfigure(0, weight=1)
-        
-        return option_window
  
     def create_compress_option_window(self):
         # option_windowの作成
@@ -316,6 +312,34 @@ class ViewController:
         # main manuの操作ができないように設定して、フォーカスを新しいウィンドウに移す
         option_window.grab_set()
         option_window.focus_set()
+    
+    def create_new_window(self,title):
+        option_window = Toplevel(self.root)
+        option_window.title(title)
+        option_window.geometry("420x220")
+        option_window.resizable(False,False)
+        option_window.columnconfigure(0, weight=1)
+        option_window.rowconfigure(0, weight=1)
+        
+        return option_window
+    
+    def set_option_menu_dict(self, option_menu):
+        self.client.menu_info["option_menu"] = option_menu
+
+    def start_to_convert(self,option_window):
+        option_window.destroy()
+        event = threading.Event()
+        
+        if self.client.socket_connected == False:
+            connect_thread = threading.Thread(target=self.client.connect,args=[event])
+            connect_thread.start()
+        else:
+            connected_thread = threading.Thread(target=self.client.send_menu_info,args=[event])
+            connected_thread.start()
+        
+        prosessing_window = self.display_progressbar("処理中")
+        create_compress_option_window_thread = threading.Thread(target=self.create_download_window,args=[prosessing_window,event])
+        create_compress_option_window_thread.start()
     
     def create_resolution_option_window(self):
         option_window = self.create_new_window("解像度を選択")
@@ -352,11 +376,14 @@ class ViewController:
         format_combobox.current(0)
         format_combobox.grid(column=0,row=1,columnspan=3)
         format_combobox.bind('<<ComboboxSelected>>',lambda event:self.change_resolution(event,width,height,width_entry,height_entry))
-
-        # # # start button
+        
+        # start button
         ttk.Button(mainframe, text="start",cursor='hand2',command=lambda:[
-            self.check_if_number(width.get(),height.get())
+            self.validate_if_number(width.get(),height.get(),option_window)
             ]).grid(column=0, row=4,columnspan=3)
+        
+        option_window.grab_set()
+        option_window.focus_set()
         
     def change_resolution(self,event,width,height,width_entry,height_entry):
         current_value = event.widget.get()
@@ -388,45 +415,18 @@ class ViewController:
         width_entry.configure(state=state)
         height_entry.configure(state=state)
     
-    def check_if_number(self,number1,number2):
+    def validate_if_number(self,width,height,option_window):
         pattern = '[0-9]+'
         repatter = re.compile(pattern)
-        result1 = re.fullmatch(repatter,number1)
-        result2 = re.fullmatch(repatter,number2)
+        result1 = re.fullmatch(repatter,width)
+        result2 = re.fullmatch(repatter,height)
         
-        print(number1,number2)
         if result1 == None or result2 == None:
             ViewController.display_alert("半角数字を入力してください")
-
-    def create_new_window(self,title):
-        option_window = Toplevel(self.root)
-        option_window.title(title)
-        option_window.geometry("420x220")
-        option_window.resizable(False,False)
-        option_window.columnconfigure(0, weight=1)
-        option_window.rowconfigure(0, weight=1)
-        
-        return option_window
-    
-    def set_option_menu_dict(self, option_menu):
-        self.client.menu_info["option_menu"] = option_menu
-
-    def start_to_convert(self,option_window):
-        option_window.destroy()
-        prosessing_window = self.display_progressbar("処理中")
-
-        event = threading.Event()
-        
-        if self.client.socket_connected == False:
-            connect_thread = threading.Thread(target=self.client.connect,args=[event])
-            connect_thread.start()
         else:
-            connected_thread = threading.Thread(target=self.client.send_menu_info,args=[event])
-            connected_thread.start()
+            self.set_option_menu_dict({"width": width,"height": height})
+            self.start_to_convert(option_window)
 
-        create_compress_option_window_thread = threading.Thread(target=self.create_download_window,args=[prosessing_window,event])
-        create_compress_option_window_thread.start()
-        
     def display_progressbar(self,title):
         prosessing_window = self.create_new_window(title)
         
@@ -467,6 +467,7 @@ class ViewController:
    
     def wait_for_destorying_open_window(self, open_window,event):
         event.wait()
+        print("destroy open window")
         open_window.destroy()
     
     def wait_and_report_to_complete_work(self,message,event):
