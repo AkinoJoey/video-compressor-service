@@ -96,6 +96,8 @@ class Server:
         
         if main_menu == "compress":
             self.compress_video(original_file_name,menu_info,output_file_name)
+        elif main_menu == "resolution":
+            self.change_video_resolution(original_file_name,menu_info,output_file_name)
         
         print("end converting")
         
@@ -104,7 +106,12 @@ class Server:
     def create_output_file_name(self,menu_info):
         original_file_name = menu_info["file_name"]
         main_menu = menu_info["main_menu"]
-        option_menu = menu_info["option_menu"]
+        
+        if type(menu_info["option_menu"]) == dict:
+            option_menu = "-".join(menu_info["option_menu"].values())
+        elif type(menu_info["option_menu"]) == str:
+            option_menu = menu_info["option_menu"] 
+        
         file_extenstion = menu_info["file_extension"]
         
         return f"{original_file_name}-{main_menu}-{option_menu}{file_extenstion}"
@@ -126,6 +133,16 @@ class Server:
         compress_command = f"ffmpeg -n -i {original_file_name} -c:v libx264 -crf {level} -preset medium -tune zerolatency -c:a copy {output_file_name}"
 
         subprocess.run(compress_command,shell=True)
+    
+    def change_video_resolution(self,original_file_name,menu_info,output_file_name):
+        width = menu_info["option_menu"]["width"]
+        height = menu_info["option_menu"]["height"]
+        
+        print("start to convert the video")
+        
+        change_resolution_command = f"ffmpeg -i {original_file_name} -filter:v scale={width}:{height} -c:a copy {output_file_name}"
+        
+        subprocess.run(change_resolution_command,shell=True)            
     
     def report_to_end_converting(self,connect,file_name):
         message = "done"
