@@ -39,7 +39,6 @@ class Client:
             ViewController.display_alert(error_message)
             event.set()
             
-    
     def send_menu_info(self,event):
         print("sending menu info ...")
         json_file = json.dumps(self.menu_info)
@@ -222,7 +221,10 @@ class ViewController:
         # # 縦横比ボタンの部分
         ratio_frame = ttk.Frame(lower_half_frame)
         ratio_frame.grid(column=2, row=0)
-        ttk.Button(ratio_frame,text="縦横比",cursor='hand2').grid(column=0, row=0)
+        ttk.Button(ratio_frame,text="縦横比",cursor='hand2',command=lambda:[
+            self.confirm_selected_video("aspect"),
+            self.set_main_menu_dict("aspect")
+            ]).grid(column=0, row=0)
         
         # # to Audioボタンの部分
         to_audio_frame = ttk.Frame(lower_half_frame)
@@ -265,6 +267,8 @@ class ViewController:
                 self.create_compress_option_window()
             elif selected_main_manu == "resolution":
                 self.create_resolution_option_window()
+            elif selected_main_manu == "aspect":
+                self.create_aspect_option_window()
     
     def set_main_menu_dict(self, main_menu):
         self.client.menu_info["main_menu"] = main_menu
@@ -358,13 +362,19 @@ class ViewController:
         format_label = ttk.Label(mainframe, text="フォーマット")
         format_label.grid(column=0, row=0,columnspan=3,sticky=S)
         
+        # start button
+        start_btn =  ttk.Button(mainframe, text="start",cursor='hand2',command=lambda:[
+            # self.validate_if_number(width.get(),height.get(),option_window)
+            ])
+        start_btn.grid(column=0, row=4,columnspan=3)
+        
         width = StringVar()
         height = StringVar()
         width.set("1280")
         height.set("720")
         resolution_label = ttk.Label(mainframe, text="解像度")
         resolution_label.grid(column=0, row=2,columnspan=3,sticky=S)
-        width_entry = ttk.Entry(mainframe,textvariable=width,width=6,state="disable")
+        width_entry = ttk.Entry(mainframe,textvariable=width,width=6,state="disable",validate="all",validatecommand=(self.validate_if_number,'%P'))
         width_entry.grid(column=0,row=3,sticky=E)
         height_entry = ttk.Entry(mainframe,textvariable=height,width=6,state="disable")
         height_entry.grid(column=2,row=3,sticky=W)
@@ -377,10 +387,7 @@ class ViewController:
         format_combobox.grid(column=0,row=1,columnspan=3)
         format_combobox.bind('<<ComboboxSelected>>',lambda event:self.change_resolution(event,width,height,width_entry,height_entry))
         
-        # start button
-        ttk.Button(mainframe, text="start",cursor='hand2',command=lambda:[
-            self.validate_if_number(width.get(),height.get(),option_window)
-            ]).grid(column=0, row=4,columnspan=3)
+        
         
         option_window.grab_set()
         option_window.focus_set()
@@ -415,17 +422,57 @@ class ViewController:
         width_entry.configure(state=state)
         height_entry.configure(state=state)
     
-    def validate_if_number(self,width,height,option_window):
+    # def validate_if_number(self,width,height,option_window):
+    #     pattern = '[0-9]+'
+    #     repatter = re.compile(pattern)
+    #     result1 = re.fullmatch(repatter,width)
+    #     result2 = re.fullmatch(repatter,height)
+        
+    #     if result1 == None or result2 == None:
+    #         ViewController.display_alert("半角数字を入力してください")
+    #     else:
+    #         self.set_option_menu_dict({"width": width,"height": height})
+    #         self.start_to_convert(option_window)
+    
+    def validate_if_number(self,value,start_btn):
         pattern = '[0-9]+'
         repatter = re.compile(pattern)
-        result1 = re.fullmatch(repatter,width)
-        result2 = re.fullmatch(repatter,height)
+        result = re.fullmatch(repatter,value)
         
-        if result1 == None or result2 == None:
-            ViewController.display_alert("半角数字を入力してください")
+        if result:
+            start_btn['state'] = 'normal'
+            return True
         else:
-            self.set_option_menu_dict({"width": width,"height": height})
-            self.start_to_convert(option_window)
+            start_btn['state'] = 'disable'
+        
+    def create_aspect_option_window(self):
+        option_window = self.create_new_window("アスペクト比を入力")
+
+        mainframe = ttk.Frame(option_window)
+        mainframe.grid(column=0, row=0,sticky=(N, W, E, S))
+        mainframe.columnconfigure(0, weight=9)
+        mainframe.columnconfigure(1, weight=1)
+        mainframe.columnconfigure(2, weight=9)
+        mainframe.rowconfigure(0,weight=1)
+        mainframe.rowconfigure(1,weight=1)
+        
+        width = StringVar()
+        height = StringVar()
+        width.set("16")
+        height.set("9")
+        width_entry = ttk.Entry(mainframe,textvariable=width,width=6,state="normal",justify=CENTER)
+        width_entry.grid(column=0,row=0,sticky=(E,S))
+        height_entry = ttk.Entry(mainframe,textvariable=height,width=6,state="normal",justify=CENTER)
+        height_entry.grid(column=2,row=0,sticky=(W,S))
+        coron = ttk.Label(mainframe, text= ":")
+        coron.grid(column=1,row=0,sticky=S)
+        
+        ttk.Button(mainframe, text="start",cursor='hand2',command=lambda:[
+            # self.validate_if_number(width.get(),height.get(),option_window)
+            ]).grid(column=0, row=1,columnspan=3)
+        
+        option_window.grab_set()
+        option_window.focus_set()
 
     def display_progressbar(self,title):
         prosessing_window = self.create_new_window(title)
