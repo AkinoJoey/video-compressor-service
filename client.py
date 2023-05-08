@@ -361,12 +361,11 @@ class ViewController:
 
         format_label = ttk.Label(mainframe, text="フォーマット")
         format_label.grid(column=0, row=0,columnspan=3,sticky=S)
-        
-        # start button
-        start_btn =  ttk.Button(mainframe, text="start",cursor='hand2',command=lambda:[
-            # self.validate_if_number(width.get(),height.get(),option_window)
-            ])
-        start_btn.grid(column=0, row=4,columnspan=3)
+        format_combobox = ttk.Combobox(mainframe,cursor='hand2',justify=CENTER,state="readonly",width=10)
+        format_combobox['values'] = ("720p","1080p","WQHD","4K","8K","カスタム")
+        format_combobox.current(0)
+        format_combobox.grid(column=0,row=1,columnspan=3)
+        format_combobox.bind('<<ComboboxSelected>>',lambda event:self.change_resolution(event,width,height,width_entry,height_entry))
         
         width = StringVar()
         height = StringVar()
@@ -374,20 +373,21 @@ class ViewController:
         height.set("720")
         resolution_label = ttk.Label(mainframe, text="解像度")
         resolution_label.grid(column=0, row=2,columnspan=3,sticky=S)
-        width_entry = ttk.Entry(mainframe,textvariable=width,width=6,state="disable",validate="all",validatecommand=(self.validate_if_number,'%P'))
+
+        check_num_wrapper = (self.root.register(self.check_num),'%P',0,5)
+        width_entry = ttk.Entry(mainframe,textvariable=width,width=6,state="disable",validate="key",validatecommand=check_num_wrapper)
         width_entry.grid(column=0,row=3,sticky=E)
-        height_entry = ttk.Entry(mainframe,textvariable=height,width=6,state="disable")
+        height_entry = ttk.Entry(mainframe,textvariable=height,width=6,state="disable",validate="key",validatecommand=check_num_wrapper)
         height_entry.grid(column=2,row=3,sticky=W)
         x = ttk.Label(mainframe, text= "x")
         x.grid(column=1,row=3)
         
-        format_combobox = ttk.Combobox(mainframe,cursor='hand2',justify=CENTER,state="readonly",width=10)
-        format_combobox['values'] = ("720p","1080p","WQHD","4K","8K","カスタム")
-        format_combobox.current(0)
-        format_combobox.grid(column=0,row=1,columnspan=3)
-        format_combobox.bind('<<ComboboxSelected>>',lambda event:self.change_resolution(event,width,height,width_entry,height_entry))
-        
-        
+        # start button
+        start_btn =  ttk.Button(mainframe, text="start",cursor='hand2',command=lambda:[
+            self.set_option_menu_dict({"width": width,"height": height}),
+            self.start_to_convert(option_window)
+            ])
+        start_btn.grid(column=0, row=4,columnspan=3)
         
         option_window.grab_set()
         option_window.focus_set()
@@ -422,28 +422,9 @@ class ViewController:
         width_entry.configure(state=state)
         height_entry.configure(state=state)
     
-    # def validate_if_number(self,width,height,option_window):
-    #     pattern = '[0-9]+'
-    #     repatter = re.compile(pattern)
-    #     result1 = re.fullmatch(repatter,width)
-    #     result2 = re.fullmatch(repatter,height)
-        
-    #     if result1 == None or result2 == None:
-    #         ViewController.display_alert("半角数字を入力してください")
-    #     else:
-    #         self.set_option_menu_dict({"width": width,"height": height})
-    #         self.start_to_convert(option_window)
-    
-    def validate_if_number(self,value,start_btn):
-        pattern = '[0-9]+'
-        repatter = re.compile(pattern)
-        result = re.fullmatch(repatter,value)
-        
-        if result:
-            start_btn['state'] = 'normal'
-            return True
-        else:
-            start_btn['state'] = 'disable'
+    def check_num(self,newval,min,max):
+        pattern = f'^\\d{{{min},{max}}}$'
+        return re.match(pattern,newval) is not None
         
     def create_aspect_option_window(self):
         option_window = self.create_new_window("アスペクト比を入力")
@@ -468,7 +449,7 @@ class ViewController:
         coron.grid(column=1,row=0,sticky=S)
         
         ttk.Button(mainframe, text="start",cursor='hand2',command=lambda:[
-            # self.validate_if_number(width.get(),height.get(),option_window)
+            # self.check_num(width.get(),height.get(),option_window)
             ]).grid(column=0, row=1,columnspan=3)
         
         option_window.grab_set()
