@@ -100,6 +100,8 @@ class Server:
             self.change_video_resolution(original_file_name,menu_info,output_file_name)
         elif main_menu == "aspect":
             self.change_video_aspect(original_file_name,menu_info,output_file_name)
+        elif main_menu == "audio":
+            self.video_to_mp3(original_file_name,menu_info,output_file_name)
         
         print("end converting")
         
@@ -114,7 +116,14 @@ class Server:
         elif type(menu_info["option_menu"]) == str:
             option_menu = menu_info["option_menu"] 
         
-        file_extenstion = menu_info["file_extension"]
+        if main_menu == "audio":
+            file_extenstion = ".mp3"
+        elif main_menu == "gif":
+            file_extenstion = ".gif"
+        elif main_menu == "webm":
+            file_extenstion = ".webm"
+        else:
+            file_extenstion = menu_info["file_extension"]
         
         return f"{original_file_name}-{main_menu}-{option_menu}{file_extenstion}"
     
@@ -155,6 +164,13 @@ class Server:
         change_aspect_command = f"ffmpeg -i {original_file_name}  -c copy -aspect {width}:{height} {output_file_name}"
     
         subprocess.run(change_aspect_command,shell=True)   
+
+    def video_to_mp3(self,original_file_name,menu_info,output_file_name):
+        print("start to convert the video")
+
+        convert_to_mp3 = f"ffmpeg -i {original_file_name} -vn {output_file_name}"
+
+        subprocess.run(convert_to_mp3,shell=True)
     
     def report_to_end_converting(self,connect,file_name):
         message = "done"
