@@ -118,7 +118,7 @@ class Client:
         data_length = self.protocol_extract_data_length_from_header()
         download_dir_path = os.path.join(os.getenv('USERPROFILE'), 'Downloads') if os.name  == "nt" else os.path.expanduser('~/Downloads')
         download_video_full_path_without_extension = os.path.join(download_dir_path,self.menu_info["file_name"])
-        file_extension = self.menu_info["file_extension"]
+        file_extension = self.get_new_file_extension()
         file_name =  self.check_for_same_name_and_rename(download_video_full_path_without_extension,file_extension)
         
         try:
@@ -128,7 +128,6 @@ class Client:
                     data = self.sock.recv(data_length if data_length <= STREAM_RATE else STREAM_RATE)
                     video.write(data)
                     data_length -= len(data)
-                    # print(data_length)
 
             print("Done downloading ...")
             event.set()
@@ -136,6 +135,18 @@ class Client:
         except Exception as e:
             print("Download error:" + str(e))
     
+    def get_new_file_extension(self):
+        main_menu = self.menu_info["main_menu"]
+
+        if main_menu == "audio":
+            return ".mp3"
+        elif main_menu == "gif":
+            return ".gif"
+        elif main_menu == "webm":
+            return ".webm"
+        else:
+            return  self.menu_info["file_extension"]
+
     def check_for_same_name_and_rename(self,download_video_full_path_without_extension,file_extension):
         file_name = download_video_full_path_without_extension + file_extension
         number_for_file_name_overwrite = 1
