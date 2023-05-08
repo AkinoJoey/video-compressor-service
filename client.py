@@ -229,17 +229,20 @@ class ViewController:
         # # to Audioボタンの部分
         to_audio_frame = ttk.Frame(lower_half_frame)
         to_audio_frame.grid(column=0, row=1)
-        ttk.Button(to_audio_frame,text="to Audio",cursor='hand2').grid(column=0, row=0)
+        ttk.Button(to_audio_frame,text="To Audio",cursor='hand2',command=lambda:[
+            self.confirm_selected_video("audio"),
+            self.set_main_menu_dict("audio")
+        ]).grid(column=0, row=0)
         
         # # WEBMボタンの部分
         gif_webm_frame = ttk.Label(lower_half_frame)
         gif_webm_frame.grid(column=1, row=1)
-        ttk.Button(gif_webm_frame, text="to GIF",cursor='hand2').grid(column=0, row=0)
+        ttk.Button(gif_webm_frame, text="To GIF",cursor='hand2').grid(column=0, row=0)
 
         # # WEBMボタンの部分
         gif_webm_frame = ttk.Label(lower_half_frame)
         gif_webm_frame.grid(column=2, row=1)
-        ttk.Button(gif_webm_frame, text="to WEBM",cursor='hand2').grid(column=0, row=0)
+        ttk.Button(gif_webm_frame, text="To WEBM",cursor='hand2').grid(column=0, row=0)
 
         self.root.mainloop()
     
@@ -269,6 +272,8 @@ class ViewController:
                 self.create_resolution_option_window()
             elif selected_main_manu == "aspect":
                 self.create_aspect_option_window()
+            elif selected_main_manu == "audio":
+                self.create_audio_option_window()
     
     def set_main_menu_dict(self, main_menu):
         self.client.menu_info["main_menu"] = main_menu
@@ -468,6 +473,22 @@ class ViewController:
             self.check_not_blank(width.get(),height.get(),option_menu={"width": width.get(),"height": height.get()},option_window=option_window)
             ]).grid(column=0, row=1,columnspan=3)
         
+        option_window.grab_set()
+        option_window.focus_set()
+    
+    def create_audio_option_window(self):
+        option_window = self.create_new_window("To Audio")
+
+        mainframe = ttk.Frame(option_window)
+        mainframe.grid(column=0, row=0,sticky=(N, W, E, S))
+        mainframe.columnconfigure(0,weight=1)
+        mainframe.rowconfigure(0,weight=1)
+
+        ttk.Button(mainframe, text="start",cursor="hand2",command=lambda:[
+            self.set_option_menu_dict("-"),
+            self.start_to_convert(option_window)
+        ]).grid(column=0,row=0)
+
         option_window.grab_set()
         option_window.focus_set()
 
