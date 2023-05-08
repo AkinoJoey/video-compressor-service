@@ -346,7 +346,7 @@ class ViewController:
         create_compress_option_window_thread.start()
     
     def create_resolution_option_window(self):
-        option_window = self.create_new_window("解像度を選択")
+        option_window = self.create_new_window("解像度")
 
         mainframe = ttk.Frame(option_window)
         mainframe.grid(column=0, row=0,sticky=(N, W, E, S))
@@ -361,32 +361,32 @@ class ViewController:
 
         format_label = ttk.Label(mainframe, text="フォーマット")
         format_label.grid(column=0, row=0,columnspan=3,sticky=S)
+
         format_combobox = ttk.Combobox(mainframe,cursor='hand2',justify=CENTER,state="readonly",width=10)
         format_combobox['values'] = ("720p","1080p","WQHD","4K","8K","カスタム")
         format_combobox.current(0)
         format_combobox.grid(column=0,row=1,columnspan=3)
         format_combobox.bind('<<ComboboxSelected>>',lambda event:self.change_resolution(event,width,height,width_entry,height_entry))
         
-        width = StringVar()
-        height = StringVar()
-        width.set("1280")
-        height.set("720")
         resolution_label = ttk.Label(mainframe, text="解像度")
         resolution_label.grid(column=0, row=2,columnspan=3,sticky=S)
 
+        width = StringVar(value="1280")
+        height = StringVar(value="720")
+        
         check_num_wrapper = (self.root.register(self.check_num),'%P',0,5)
+
         width_entry = ttk.Entry(mainframe,textvariable=width,width=6,state="disable",validate="key",validatecommand=check_num_wrapper)
         width_entry.grid(column=0,row=3,sticky=E)
+
         height_entry = ttk.Entry(mainframe,textvariable=height,width=6,state="disable",validate="key",validatecommand=check_num_wrapper)
         height_entry.grid(column=2,row=3,sticky=W)
         x = ttk.Label(mainframe, text= "x")
         x.grid(column=1,row=3)
         
-        # start button
-        start_btn =  ttk.Button(mainframe, text="start",cursor='hand2',command=lambda:[
+        ttk.Button(mainframe, text="start",cursor='hand2',command=lambda:[
             self.check_not_blank(width.get(),height.get(),option_menu={"width": width.get(),"height": height.get()},option_window=option_window)
-            ])
-        start_btn.grid(column=0, row=4,columnspan=3)
+            ]).grid(column=0, row=4,columnspan=3)
         
         option_window.grab_set()
         option_window.focus_set()
@@ -398,22 +398,27 @@ class ViewController:
             width.set("1280")
             height.set("720")
             self.set_state_of_option(width_entry,height_entry,"disable")
+
         elif current_value == "1080p":
             width.set("1920")
             height.set("1080")
             self.set_state_of_option(width_entry,height_entry,"disable")
+
         elif current_value == "WQHD":
             width.set("2560")
             height.set("1440")
             self.set_state_of_option(width_entry,height_entry,"disable")
+
         elif current_value == "4K":
             width.set("4096")
             height.set("2160")
             self.set_state_of_option(width_entry,height_entry,"disable")
+
         elif current_value == "8K":
             width.set("7680")
             height.set("4320")
             self.set_state_of_option(width_entry,height_entry,"disable")
+
         else:
             self.set_state_of_option(width_entry,height_entry,"normal")   
     
@@ -435,7 +440,7 @@ class ViewController:
         self.start_to_convert(option_window)
         
     def create_aspect_option_window(self):
-        option_window = self.create_new_window("アスペクト比を入力")
+        option_window = self.create_new_window("アスペクト比")
 
         mainframe = ttk.Frame(option_window)
         mainframe.grid(column=0, row=0,sticky=(N, W, E, S))
@@ -445,19 +450,22 @@ class ViewController:
         mainframe.rowconfigure(0,weight=1)
         mainframe.rowconfigure(1,weight=1)
         
-        width = StringVar()
-        height = StringVar()
-        width.set("16")
-        height.set("9")
-        width_entry = ttk.Entry(mainframe,textvariable=width,width=6,state="normal",justify=CENTER)
+        width = StringVar(value="16")
+        height = StringVar(value="9")
+
+        check_num_wrapper = (self.root.register(self.check_num),'%P',0,2)
+        
+        width_entry = ttk.Entry(mainframe,textvariable=width,width=6,state="normal",justify=CENTER,validate='key',validatecommand=check_num_wrapper)
         width_entry.grid(column=0,row=0,sticky=(E,S))
-        height_entry = ttk.Entry(mainframe,textvariable=height,width=6,state="normal",justify=CENTER)
+        
+        height_entry = ttk.Entry(mainframe,textvariable=height,width=6,state="normal",justify=CENTER,validate='key',validatecommand=check_num_wrapper)
         height_entry.grid(column=2,row=0,sticky=(W,S))
+
         coron = ttk.Label(mainframe, text= ":")
         coron.grid(column=1,row=0,sticky=S)
         
         ttk.Button(mainframe, text="start",cursor='hand2',command=lambda:[
-            # self.check_num(width.get(),height.get(),option_window)
+            self.check_not_blank(width.get(),height.get(),option_menu={"width": width.get(),"height": height.get()},option_window=option_window)
             ]).grid(column=0, row=1,columnspan=3)
         
         option_window.grab_set()
