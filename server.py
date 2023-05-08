@@ -98,6 +98,8 @@ class Server:
             self.compress_video(original_file_name,menu_info,output_file_name)
         elif main_menu == "resolution":
             self.change_video_resolution(original_file_name,menu_info,output_file_name)
+        elif main_menu == "aspect":
+            self.change_video_aspect(original_file_name,menu_info,output_file_name)
         
         print("end converting")
         
@@ -142,7 +144,17 @@ class Server:
         
         change_resolution_command = f"ffmpeg -i {original_file_name} -filter:v scale={width}:{height} -c:a copy {output_file_name}"
         
-        subprocess.run(change_resolution_command,shell=True)            
+        subprocess.run(change_resolution_command,shell=True)   
+
+    def change_video_aspect(self,original_file_name,menu_info,output_file_name):
+        width = menu_info["option_menu"]["width"]
+        height = menu_info["option_menu"]["height"]
+        
+        print("start to convert the video")
+
+        change_aspect_command = f"ffmpeg -i {original_file_name}  -c copy -aspect {width}:{height} {output_file_name}"
+    
+        subprocess.run(change_aspect_command,shell=True)   
     
     def report_to_end_converting(self,connect,file_name):
         message = "done"
