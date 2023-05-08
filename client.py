@@ -384,8 +384,7 @@ class ViewController:
         
         # start button
         start_btn =  ttk.Button(mainframe, text="start",cursor='hand2',command=lambda:[
-            self.set_option_menu_dict({"width": width,"height": height}),
-            self.start_to_convert(option_window)
+            self.check_not_blank(width.get(),height.get(),option_menu={"width": width.get(),"height": height.get()},option_window=option_window)
             ])
         start_btn.grid(column=0, row=4,columnspan=3)
         
@@ -425,6 +424,15 @@ class ViewController:
     def check_num(self,newval,min,max):
         pattern = f'^\\d{{{min},{max}}}$'
         return re.match(pattern,newval) is not None
+
+    def check_not_blank(self,*entry,option_menu,option_window):
+        for value in entry:
+            if value == "":
+                ViewController.display_alert("値を入力してください")
+                return
+        
+        self.set_option_menu_dict(option_menu)
+        self.start_to_convert(option_window)
         
     def create_aspect_option_window(self):
         option_window = self.create_new_window("アスペクト比を入力")
