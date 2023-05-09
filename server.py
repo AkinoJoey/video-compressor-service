@@ -195,9 +195,12 @@ class Server:
     def wait_for_pushing_download(self,connect,file_name):
         message_length = self.protocol_extract_data_length_from_header(connect)
         message = connect.recv(message_length).decode("utf-8")
-        if message == "download":
+
+        if message == "do":
             self.send_converted_video(file_name,connect)
-        
+        elif message == "not":
+            self.delete_video(file_name)
+
     def send_converted_video(self,file_name,connect):
         print("Sending video...")
         STREAM_RATE = 4096
