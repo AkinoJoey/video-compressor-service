@@ -458,7 +458,8 @@ class ViewController:
                 return
         
         self.set_option_menu_dict(option_menu)
-        self.start_to_convert(option_window)
+        print(self.client.menu_info)
+        # self.start_to_convert(option_window)
         
     def create_aspect_option_window(self):
         option_window = self.create_new_window("アスペクト比")
@@ -519,19 +520,67 @@ class ViewController:
         mainframe.rowconfigure(0, weight=1)
         mainframe.rowconfigure(1, weight=1)
 
-        start_time = StringVar(value="00:00:00")
-        end_time = StringVar(value="00:00:00")
+        start_frame = ttk.Frame(mainframe)
+        start_frame.grid(column=0,row=0,sticky=(S,E))
+        start_frame.columnconfigure(0,weight=9)
+        start_frame.columnconfigure(1,weight=1)
+        start_frame.columnconfigure(2,weight=9)
+        start_frame.columnconfigure(3,weight=1)
+        start_frame.columnconfigure(4,weight=9)
+        start_frame.rowconfigure(0,weight=1)
 
-        entry_start = ttk.Entry(mainframe,width=8,textvariable=start_time,justify=CENTER)
-        entry_start.grid(column=0,row=0,sticky=(E,S))
-        entry_end = ttk.Entry(mainframe,width=8,textvariable=end_time,justify=CENTER)
-        entry_end.grid(column=2,row=0,sticky=(W,S))
+        end_frame = ttk.Frame(mainframe)
+        end_frame.grid(column=2,row=0,sticky=(S,W))
+        end_frame.columnconfigure(0,weight=9)
+        end_frame.columnconfigure(1,weight=1)
+        end_frame.columnconfigure(2,weight=9)
+        end_frame.columnconfigure(3,weight=1)
+        end_frame.columnconfigure(4,weight=9)
+        end_frame.rowconfigure(0,weight=1)
 
-        wavy = Label(mainframe,text="~")
-        wavy.grid(column=1,row=0,sticky=S)
+        start_hh = StringVar(value="00")
+        start_mm = StringVar(value="00")
+        start_ss = StringVar(value="00")
+
+        end_hh = StringVar(value="00")
+        end_mm = StringVar(value="00")
+        end_ss = StringVar(value="00")
+        
+        colon_1 = ttk.Label(start_frame,text=":")
+        colon_1.grid(column=1,row=0)
+        colon_2 = ttk.Label(start_frame,text=":")
+        colon_2.grid(column=3,row=0)
+        colon_3 = ttk.Label(end_frame,text=":")
+        colon_3.grid(column=1,row=0)
+        colon_4 = ttk.Label(end_frame,text=":")
+        colon_4.grid(column=3,row=0)
+
+        wave = ttk.Label(mainframe,text="~")
+        wave.grid(column=1,row=0,sticky=S)
+
+        check_time_wrapper = (self.root.register(self.check_num),'%P',0,2)
+        start_hh_entry = ttk.Entry(start_frame, textvariable=start_hh,width=3,justify=CENTER,validate='key',validatecommand=check_time_wrapper)
+        start_hh_entry.grid(column=0, row=0,sticky=(S,E))
+        start_mm_entry = ttk.Entry(start_frame, textvariable=start_mm,width=3,justify=CENTER,validate='key',validatecommand=check_time_wrapper)
+        start_mm_entry.grid(column=2,row=0,sticky=S)
+        start_ss_entry = ttk.Entry(start_frame,textvariable=start_ss,width=3,justify=CENTER,validate='key',validatecommand=check_time_wrapper)
+        start_ss_entry.grid(column=4,row=0,sticky=(S,W))
+
+        end_hh_entry = ttk.Entry(end_frame, textvariable=end_hh,width=3,justify=CENTER,validate='key',validatecommand=check_time_wrapper)
+        end_hh_entry.grid(column=0, row=0,sticky=(S,W))
+        end_mm_entry = ttk.Entry(end_frame, textvariable=end_mm,width=3,justify=CENTER,validate='key',validatecommand=check_time_wrapper)
+        end_mm_entry.grid(column=2,row=0,sticky=S)
+        end_ss_entry = ttk.Entry(end_frame,textvariable=end_ss,width=3,justify=CENTER,validate='key',validatecommand=check_time_wrapper)
+        end_ss_entry.grid(column=4,row=0,sticky=(S,E))
+
 
         ttk.Button(mainframe, text="start",cursor="hand2",command=lambda:[
-            self.check_not_blank(start_time.get(),end_time.get(),option_menu={"start":start_time.get(),"End":end_time.get()},option_window=option_window)
+            self.check_not_blank(start_hh.get(),start_mm.get(),start_ss.get(),end_hh.get(),end_mm.get(),end_ss.get(),
+                                 option_menu={
+                                    "start:"f"{start_hh.get()}"":"f"{start_mm.get()}"":"f"{start_ss.get()}",
+                                    "end:"f"{end_hh.get()}"":"f"{end_mm.get()}"":"f"{end_ss.get()}",
+                                             },
+                                 option_window=option_window)
         ]).grid(column=0,row=1,columnspan=3)
 
         option_window.grab_set()
