@@ -205,23 +205,27 @@ class Server:
         print("Sending video...")
         STREAM_RATE = 4096
         
-        with open(file_name, "rb") as video:
-            video.seek(0, os.SEEK_END)
-            data_size = video.tell()
-            video.seek(0,0)
-            header = self.protocol_make_header(data_size)
-            connect.sendall(header)
-            
-            data = video.read(4096)
-            
-            while data:
-                print("sending...")
-                connect.send(data)
+        try:
+            with open(file_name, "rb") as video:
+                video.seek(0, os.SEEK_END)
+                data_size = video.tell()
+                video.seek(0,0)
+                header = self.protocol_make_header(data_size)
+                connect.sendall(header)
+                
                 data = video.read(4096)
-            
-        print("Done sending...")
+                
+                while data:
+                    print("sending...")
+                    connect.send(data)
+                    data = video.read(4096)
+                
+            print("Done sending...")
 
-        self.delete_video(file_name)
+            self.delete_video(file_name)
+
+        except Exception as e:
+            print("Error: " + str(e))
 
     def delete_video(self,file_name):
         os.remove(file_name)
