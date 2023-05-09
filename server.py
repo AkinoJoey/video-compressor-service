@@ -101,7 +101,9 @@ class Server:
         elif main_menu == "aspect":
             self.change_video_aspect(original_file_name,menu_info,output_file_name)
         elif main_menu == "audio":
-            self.video_to_mp3(original_file_name,menu_info,output_file_name)
+            self.video_to_mp3(original_file_name,output_file_name)
+        elif main_menu == "gif":
+            self.video_to_gif(original_file_name,menu_info,output_file_name)
         
         print("end converting")
         
@@ -125,7 +127,7 @@ class Server:
         else:
             file_extenstion = menu_info["file_extension"]
         
-        return f"{original_file_name}-{main_menu}-{option_menu}{file_extenstion}"
+        return f"{original_file_name}-{main_menu}{file_extenstion}"
     
     def compress_video(self,original_file_name,menu_info,output_file_name):
         option_menu = menu_info["option_menu"]
@@ -141,7 +143,7 @@ class Server:
             level = low
             
         print("start to convert the video")
-        compress_command = f"ffmpeg -n -i {original_file_name} -c:v libx264 -crf {level} -preset medium -tune zerolatency -c:a copy {output_file_name}"
+        compress_command = f"ffmpeg -y -i {original_file_name} -c:v libx264 -crf {level} -preset medium -tune zerolatency -c:a copy {output_file_name}"
 
         subprocess.run(compress_command,shell=True)
     
@@ -151,7 +153,7 @@ class Server:
         
         print("start to convert the video")
         
-        change_resolution_command = f"ffmpeg -i {original_file_name} -filter:v scale={width}:{height} -c:a copy {output_file_name}"
+        change_resolution_command = f"ffmpeg y -i {original_file_name} -filter:v scale={width}:{height} -c:a copy {output_file_name}"
         
         subprocess.run(change_resolution_command,shell=True)   
 
@@ -161,16 +163,26 @@ class Server:
         
         print("start to convert the video")
 
-        change_aspect_command = f"ffmpeg -i {original_file_name}  -c copy -aspect {width}:{height} {output_file_name}"
+        change_aspect_command = f"ffmpeg -y -i {original_file_name}  -c copy -aspect {width}:{height} {output_file_name}"
     
         subprocess.run(change_aspect_command,shell=True)   
 
-    def video_to_mp3(self,original_file_name,menu_info,output_file_name):
+    def video_to_mp3(self,original_file_name,output_file_name):
         print("start to convert the video")
 
-        convert_to_mp3 = f"ffmpeg -i {original_file_name} -vn {output_file_name}"
+        convert_to_mp3 = f"ffmpeg -y -i {original_file_name} -vn {output_file_name}"
 
         subprocess.run(convert_to_mp3,shell=True)
+
+    def video_to_gif(self,original_file_name,menu_info,output_file_name):
+        start_time = menu_info["option_menu"]["start"]
+        end_time = menu_info["option_menu"]["end"]
+
+        print("start to convert the video")
+
+        convert_to_gif = f"ffmpeg -ss {start_time} -y -i {original_file_name} -t {end_time} -r 5 {output_file_name}"
+
+        subprocess.run(convert_to_gif,shell=True)
     
     def report_to_end_converting(self,connect,file_name):
         message = "done"
