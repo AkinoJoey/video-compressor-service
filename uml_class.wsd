@@ -142,6 +142,10 @@ ffmpeg -i {original_file_name} -vn {output_file_name}
 終了時間
 
 ffmpeg -ss 00:00:00 -i test.mp4 -t 00:00:02 -r 5 test.gif
+ffmpeg -ss 00:00:10 -y -i test.mp4 -t 00:00:12 -r 5 test.gif
+
+ffmpeg -ss {start_time} -i {original_file_name} -t {end_time} -r 5 {output_file_name}
+
 -ss は GIF の開始位置、-to は終了位置、-r はフレームレート、-vf は一定サイズに拡大するフィルタグラフです。
 
 ・webm
