@@ -135,6 +135,7 @@ class Client:
 
         except Exception as e:
             print("Download error:" + str(e))
+            event.set()
     
     def get_new_file_extension(self):
         main_menu = self.menu_info["main_menu"]
