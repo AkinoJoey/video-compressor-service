@@ -458,8 +458,7 @@ class ViewController:
                 return
         
         self.set_option_menu_dict(option_menu)
-        print(self.client.menu_info)
-        # self.start_to_convert(option_window)
+        self.start_to_convert(option_window)
         
     def create_aspect_option_window(self):
         option_window = self.create_new_window("アスペクト比")
@@ -573,12 +572,13 @@ class ViewController:
         end_ss_entry = ttk.Entry(end_frame,textvariable=end_ss,width=3,justify=CENTER,validate='key',validatecommand=check_time_wrapper)
         end_ss_entry.grid(column=4,row=0,sticky=(S,E))
 
-
+        
+        
         ttk.Button(mainframe, text="start",cursor="hand2",command=lambda:[
             self.check_not_blank(start_hh.get(),start_mm.get(),start_ss.get(),end_hh.get(),end_mm.get(),end_ss.get(),
                                  option_menu={
-                                    "start:"f"{start_hh.get()}"":"f"{start_mm.get()}"":"f"{start_ss.get()}",
-                                    "end:"f"{end_hh.get()}"":"f"{end_mm.get()}"":"f"{end_ss.get()}",
+                                    "start":f"{start_hh.get()}:{start_mm.get()}:{start_ss.get()}",
+                                    "end":f"{end_hh.get()}:{end_mm.get()}:{end_ss.get()}"
                                              },
                                  option_window=option_window)
         ]).grid(column=0,row=1,columnspan=3)
