@@ -1,9 +1,9 @@
 import socket
 import subprocess
 import json
-import sys
 import os
 import shutil
+import threading
 
 class Server:
     def __init__(self):
@@ -53,7 +53,7 @@ class Server:
 
         if os.path.exists(file_name):
             self.replay_to_client(connect, "No need")
-            self.convert_video(connect,menu_info,file_name)
+            self.handle_convert_video(connect,menu_info,file_name)
         else:
             self.replay_to_client(connect, "need")
             self.receive_video(connect,menu_info,file_name)
@@ -89,9 +89,9 @@ class Server:
             pass
 
             
-        self.convert_video(connect,menu_info,file_name)
+        self.handle_convert_video(connect,menu_info,file_name)
         
-    def convert_video(self,connect,menu_info,original_file_name):
+    def handle_convert_video(self,connect,menu_info,original_file_name):
         output_file_name = self.temp_strage_dir_path + self.create_output_file_name(menu_info)
         main_menu = menu_info["main_menu"]
         
@@ -106,7 +106,6 @@ class Server:
         elif main_menu == "gif":
             self.video_to_gif(original_file_name,menu_info,output_file_name)
         
-        print(original_file_name)
         print("end converting")
         
         self.report_to_end_converting(connect,output_file_name)
@@ -148,6 +147,10 @@ class Server:
         compress_command = f"ffmpeg -y -i {original_file_name} -c:v libx264 -crf {level} -preset medium -tune zerolatency -c:a copy {output_file_name}"
 
         subprocess.run(compress_command,shell=True)
+        
+    def start_to_convert_and_check_if_interrupt(self,ffmpeg_command):
+        convert_thread = threading.Thread(target=lambda:[subprocess.run(ffmpeg_command,shell=True)])
+        convert_thread.start()        
     
     def change_video_resolution(self,original_file_name,menu_info,output_file_name):
         width = menu_info["option_menu"]["width"]
