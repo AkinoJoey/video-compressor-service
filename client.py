@@ -171,6 +171,11 @@ class ViewController:
     @staticmethod
     def display_alert(error_msg):
         messagebox.showerror(title="error",message=error_msg)
+            
+    def display_askyesno(self,msg,callback=None):
+        anser = messagebox.askyesno(message=msg)
+        if anser:
+            print("ここに中断するためのcallback関数を入れる")
 
     def create_main_manu_page(self):
         # rootの構成
@@ -604,6 +609,7 @@ class ViewController:
         progressbar = ttk.Progressbar(mainframe,length=200,orient=HORIZONTAL,mode='indeterminate')
         progressbar.grid(column=0,row=0)
         progressbar.start(10)
+        prosessing_window.protocol("WM_DELETE_WINDOW",func=lambda:[self.display_askyesno("本当に終了しますか？")])
         
         print("display progress bar....")
         
