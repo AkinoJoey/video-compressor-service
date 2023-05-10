@@ -48,7 +48,8 @@ class Server:
         return int.from_bytes(connect.recv(STREAM_RATE),"big")
         
     def check_video_exists(self,connect,menu_info):
-        file_name = self.temp_strage_dir_path + menu_info["file_name"] + menu_info["file_extension"]
+        file_name_without_whitespace = "".join(menu_info["file_name"].split())
+        file_name = self.temp_strage_dir_path + file_name_without_whitespace + menu_info["file_extension"]
 
         if os.path.exists(file_name):
             self.replay_to_client(connect, "No need")
@@ -105,12 +106,13 @@ class Server:
         elif main_menu == "gif":
             self.video_to_gif(original_file_name,menu_info,output_file_name)
         
+        print(original_file_name)
         print("end converting")
         
         self.report_to_end_converting(connect,output_file_name)
     
     def create_output_file_name(self,menu_info):
-        original_file_name = menu_info["file_name"]
+        original_file_name = "".join(menu_info["file_name"].split())
         main_menu = menu_info["main_menu"]
         
         if type(menu_info["option_menu"]) == dict:
@@ -153,7 +155,7 @@ class Server:
         
         print("start to convert the video")
         
-        change_resolution_command = f"ffmpeg y -i {original_file_name} -filter:v scale={width}:{height} -c:a copy {output_file_name}"
+        change_resolution_command = f"ffmpeg -y -i {original_file_name} -filter:v scale={width}:{height} -c:a copy {output_file_name}"
         
         subprocess.run(change_resolution_command,shell=True)   
 
