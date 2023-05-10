@@ -24,10 +24,11 @@ class Client:
             "option_menu":None
         }
         
-    def connect(self,converting_event):
+    def connect(self,converting_event,connect_event):
         try:
             self.sock.connect((self.server_address, self.server_port))
             self.socket_connecting = True
+            connect_event.set()
             print("client server" + str(self.socket_connecting))
             self.send_menu_info(converting_event)
             
@@ -100,19 +101,20 @@ class Client:
         if message == "done":
             converting_event.set()
     
-    def tell_server_want_to_download_or_not(self,event,do_or_not):
+    def tell_server_want_to_download_or_not(self,download_event,do_or_not):
         message_bytes = do_or_not.encode("utf-8")
         header = self.protocol_make_header(len(message_bytes))
 
         if message_bytes == b"do":
             self.sock.sendall(header)
             self.sock.sendall(message_bytes)
-            self.download_video(event)
+            self.download_video(download_event)
+            
         elif message_bytes == b"not":
             self.sock.sendall(header)
             self.sock.sendall(message_bytes)
         
-    def download_video(self,event):
+    def download_video(self,download_event):
         print(threading.active_count())
         print(threading.current_thread())
 
@@ -132,11 +134,11 @@ class Client:
                     data_length -= len(data)
 
             print("Done downloading ...")
-            event.set()
+            download_event.set()
 
         except Exception as e:
             print("Download error:" + str(e))
-            event.set()
+            download_event.set()
     
     def get_new_file_extension(self):
         main_menu = self.menu_info["main_menu"]
@@ -358,18 +360,19 @@ class ViewController:
     def start_to_convert(self,option_window):
         option_window.destroy()
         converting_event = threading.Event()
+        connect_event = threading.Event()
         
         if self.client.socket_connecting:
             connecting_thread = threading.Thread(target=self.client.send_menu_info,args=[converting_event])
             connecting_thread.start()
+            create_download_window_thread = threading.Thread(target=self.create_download_window,args=[converting_event])
+            create_download_window_thread.start()
         else:
-            connect_thread = threading.Thread(target=self.client.connect,args=[converting_event])
+            connect_thread = threading.Thread(target=self.client.connect,args=[converting_event,connect_event])
             connect_thread.start()
+            create_download_window_thread = threading.Thread(target=self.create_download_window,args=[converting_event,connect_event])
+            create_download_window_thread.start()
         
-        print("self.client.socket_connecting" + str(self.client.socket_connecting))
-        create_compress_option_window_thread = threading.Thread(target=self.create_download_window,args=[converting_event])
-        create_compress_option_window_thread.start()
-            
         self.display_progressbar("処理中",converting_event)
         
     def create_resolution_option_window(self):
@@ -590,7 +593,7 @@ class ViewController:
         option_window.grab_set()
         option_window.focus_set()
 
-    def display_progressbar(self,title,converting_event):
+    def display_progressbar(self,title,event):
         prosessing_window = self.create_new_window(title)
 
         mainframe = ttk.Frame(prosessing_window,padding=50)
@@ -604,37 +607,38 @@ class ViewController:
         
         print("display progress bar....")
         
-        destory_progressbar_thread = threading.Thread(target=self.wait_for_destorying_open_window,args=[prosessing_window,converting_event])
+        destory_progressbar_thread = threading.Thread(target=self.wait_for_destorying_open_window,args=[prosessing_window,event])
         destory_progressbar_thread.start()
         
-    def create_download_window(self,event):
-        event.wait()
+    def create_download_window(self,converting_event,connect_event=None):
+        if connect_event:
+            connect_event.wait()
         
-        print("conecct: " + str(self.client.socket_connecting))
-        if self.client.socket_connecting == True:   
-            download_window = self.create_new_window("処理完了")
-            mainframe = ttk.Frame(download_window)
-            mainframe.grid(column=0, row=0,sticky=(N, W, E, S))
-            mainframe.columnconfigure(0, weight=1)
-            mainframe.rowconfigure(0, weight=1)
+        converting_event.wait()
+        
+        download_window = self.create_new_window("処理完了")
+        mainframe = ttk.Frame(download_window)
+        mainframe.grid(column=0, row=0,sticky=(N, W, E, S))
+        mainframe.columnconfigure(0, weight=1)
+        mainframe.rowconfigure(0, weight=1)
 
-            event = threading.Event()
-            request_download_thread  = threading.Thread(target=self.client.tell_server_want_to_download_or_not,args=[event,"do"])
-            
-            # closeボタンを押した場合、ダウンロードが必要ないことをサーバーに伝える
-            download_window.protocol("WM_DELETE_WINDOW",func=lambda:[
-                self.client.tell_server_want_to_download_or_not(event,"not"),
-                download_window.destroy()
-            ])
+        download_event = threading.Event()
+        request_download_thread  = threading.Thread(target=self.client.tell_server_want_to_download_or_not,args=[download_event,"do"])
+        
+        # closeボタンを押した場合、ダウンロードが必要ないことをサーバーに伝える
+        download_window.protocol("WM_DELETE_WINDOW",func=lambda:[
+            self.client.tell_server_want_to_download_or_not(download_event,"not"),
+            download_window.destroy()
+        ])
 
-            wait_and_report_to_complete_work_thread = threading.Thread(target=self.wait_and_report_to_complete_work,args=["ダウンロードが完了しました。",event])
-            
-            ttk.Button(mainframe, text="Download",command=lambda:[
-                download_window.destroy(),
-                request_download_thread.start(),
-                self.display_progressbar("ダウンロード中",event),
-                wait_and_report_to_complete_work_thread.start()
-                ]).grid(column=0, row=0)
+        wait_and_report_to_complete_work_thread = threading.Thread(target=self.wait_and_report_to_complete_work,args=["ダウンロードが完了しました。",download_event])
+        
+        ttk.Button(mainframe, text="Download",command=lambda:[
+            download_window.destroy(),
+            request_download_thread.start(),
+            self.display_progressbar("ダウンロード中",download_event),
+            wait_and_report_to_complete_work_thread.start()
+            ]).grid(column=0, row=0)
 
     def wait_for_destorying_open_window(self, open_window,event):
         event.wait()
