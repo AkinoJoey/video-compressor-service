@@ -7,6 +7,7 @@ import os
 import json
 import threading
 import re
+import time
 
 class Client:
     def __init__(self):
@@ -23,23 +24,24 @@ class Client:
             "option_menu":None
         }
         
-    def connect(self,event):
+    def connect(self,converting_event):
         try:
             self.sock.connect((self.server_address, self.server_port))
             self.socket_connecting = True
-            self.send_menu_info(event)
+            print("client server" + str(self.socket_connecting))
+            self.send_menu_info(converting_event)
             
         except ConnectionRefusedError:
             error_message = "サーバーに接続できません"
             ViewController.display_alert(error_message)
-            event.set()
+            converting_event.set()
         
         except Exception as e:
             error_message = "Error: " + str(e)
             ViewController.display_alert(error_message)
-            event.set()
+            converting_event.set()
             
-    def send_menu_info(self,event):
+    def send_menu_info(self,converting_event):
         print("sending menu info ...")
         json_file = json.dumps(self.menu_info)
         json_file_bytes = json_file.encode("utf-8")
@@ -48,21 +50,21 @@ class Client:
         self.sock.sendall(header)
         self.sock.sendall(json_file_bytes)
 
-        self.wait_for_video_send(event)
+        self.wait_for_video_send(converting_event)
     
     def protocol_make_header(self,data_length):
         STREAM_RATE = 4
         return data_length.to_bytes(STREAM_RATE,"big")
 
-    def wait_for_video_send(self,event):
+    def wait_for_video_send(self,converting_event):
         message_from_server_length = self.protocol_extract_data_length_from_header()
         message_from_server = self.sock.recv(message_from_server_length).decode("utf-8")
         print(message_from_server)
 
         if message_from_server == "need":
-            self.send_video(event)
+            self.send_video(converting_event)
         elif message_from_server == "No need":
-            self.wait_to_convert(event)
+            self.wait_to_convert(converting_event)
         else:
             raise ValueError("error")
         
@@ -70,7 +72,7 @@ class Client:
         STREAM_RATE = 4
         return int.from_bytes(self.sock.recv(STREAM_RATE),"big")
     
-    def send_video(self,event):
+    def send_video(self,converting_event):
         print("Sending video...")
         print(self.file_path)
         STREAM_RATE = 4096
@@ -85,19 +87,18 @@ class Client:
             data = video.read(STREAM_RATE)
             
             while data:
-                print("sending...")
                 self.sock.send(data)
                 data = video.read(STREAM_RATE)
             
         print("Done sending...")
         
-        self.wait_to_convert(event)
+        self.wait_to_convert(converting_event)
         
-    def wait_to_convert(self,event):
+    def wait_to_convert(self,converting_event):
         message_length = self.protocol_extract_data_length_from_header()
         message = self.sock.recv(message_length).decode("utf-8")
         if message == "done":
-            event.set()
+            converting_event.set()
     
     def tell_server_want_to_download_or_not(self,event,do_or_not):
         message_bytes = do_or_not.encode("utf-8")
@@ -258,7 +259,8 @@ class ViewController:
         # # WEBMボタンの部分
         gif_webm_frame = ttk.Label(lower_half_frame)
         gif_webm_frame.grid(column=2, row=1)
-        ttk.Button(gif_webm_frame, text="To WEBM",cursor='hand2').grid(column=0, row=0)
+        ttk.Button(gif_webm_frame, text="To WEBM",cursor='hand2',command=lambda:[
+            self.test()]).grid(column=0, row=0)
 
         self.root.mainloop()
     
@@ -277,7 +279,7 @@ class ViewController:
         self.set_file_name_dict(file_name_without_extension)
         self.set_file_extension_dict(file_extension)
         self.display_file_name(file_name_with_extension)
-    
+        
     def confirm_selected_video(self,selected_main_manu):
         if self.file_name_for_display.get() == "":
             ViewController.display_alert("ファイルを選択してください")
@@ -355,19 +357,21 @@ class ViewController:
 
     def start_to_convert(self,option_window):
         option_window.destroy()
-        event = threading.Event()
+        converting_event = threading.Event()
         
         if self.client.socket_connecting:
-            connecting_thread = threading.Thread(target=self.client.send_menu_info,args=[event])
+            connecting_thread = threading.Thread(target=self.client.send_menu_info,args=[converting_event])
             connecting_thread.start()
         else:
-            connect_thread = threading.Thread(target=self.client.connect,args=[event])
+            connect_thread = threading.Thread(target=self.client.connect,args=[converting_event])
             connect_thread.start()
         
-        prosessing_window = self.display_progressbar("処理中")
-        create_compress_option_window_thread = threading.Thread(target=self.create_download_window,args=[prosessing_window,event])
+        print("self.client.socket_connecting" + str(self.client.socket_connecting))
+        create_compress_option_window_thread = threading.Thread(target=self.create_download_window,args=[converting_event])
         create_compress_option_window_thread.start()
-    
+            
+        self.display_progressbar("処理中",converting_event)
+        
     def create_resolution_option_window(self):
         option_window = self.create_new_window("解像度")
 
@@ -586,9 +590,9 @@ class ViewController:
         option_window.grab_set()
         option_window.focus_set()
 
-    def display_progressbar(self,title):
+    def display_progressbar(self,title,converting_event):
         prosessing_window = self.create_new_window(title)
-        
+
         mainframe = ttk.Frame(prosessing_window,padding=50)
         mainframe.grid(column=0, row=0,sticky=(N, W, E, S))
         mainframe.columnconfigure(0, weight=1)
@@ -599,14 +603,16 @@ class ViewController:
         progressbar.start(10)
         
         print("display progress bar....")
-        return prosessing_window
-
-    def create_download_window(self,prosessing_window,event):
-        self.wait_for_destorying_open_window(prosessing_window,event)
         
-        if self.client.socket_connecting == True:
+        destory_progressbar_thread = threading.Thread(target=self.wait_for_destorying_open_window,args=[prosessing_window,converting_event])
+        destory_progressbar_thread.start()
+        
+    def create_download_window(self,event):
+        event.wait()
+        
+        print("conecct: " + str(self.client.socket_connecting))
+        if self.client.socket_connecting == True:   
             download_window = self.create_new_window("処理完了")
-            
             mainframe = ttk.Frame(download_window)
             mainframe.grid(column=0, row=0,sticky=(N, W, E, S))
             mainframe.columnconfigure(0, weight=1)
@@ -620,14 +626,16 @@ class ViewController:
                 self.client.tell_server_want_to_download_or_not(event,"not"),
                 download_window.destroy()
             ])
+
+            wait_and_report_to_complete_work_thread = threading.Thread(target=self.wait_and_report_to_complete_work,args=["ダウンロードが完了しました。",event])
             
             ttk.Button(mainframe, text="Download",command=lambda:[
                 download_window.destroy(),
                 request_download_thread.start(),
-                self.wait_for_destorying_open_window(self.display_progressbar("ダウンロード中"),event),
-                self.wait_and_report_to_complete_work("ダウンロードが完了しました。",event)
+                self.display_progressbar("ダウンロード中",event),
+                wait_and_report_to_complete_work_thread.start()
                 ]).grid(column=0, row=0)
-   
+
     def wait_for_destorying_open_window(self, open_window,event):
         event.wait()
         print("destroy open window")
