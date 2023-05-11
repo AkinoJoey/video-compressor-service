@@ -3,31 +3,39 @@ import subprocess
 import json
 import os
 import shutil
-import threading
+import shlex
+import signal
+import asyncio
 
 class Server:
     def __init__(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_address = "127.0.0.1"
         self.server_port = 9999
         self.temp_strage_dir_path = "./temp-strage-dir/"
+        self.reader = None
+        self.writer = None
     
     def check_and_mkdir_for_strage_dir_path(self):
         if not os.path.exists(self.temp_strage_dir_path):
             os.mkdir(self.temp_strage_dir_path)
+    
+    async def create_server(self):
+        server = await asyncio.start_server(self.accpet, self.server_address,self.server_port)
+        addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
+        print(f'Serving on {addrs}')
+
+        async with server:
+            await server.serve_forever()
             
-    def accpet(self):
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((self.server_address, self.server_port))
-        self.sock.listen(1)
+    async def accpet(self,reader,writer):
         print("socket created")
-        connect, address = self.sock.accept()
-        print("Connected by", address)
+        self.reader = reader
+        self.writer = writer
         
         try:
             while True:
-                menu_info =  self.receive_menu_info(connect)
-                self.check_video_exists(connect,menu_info)
+                menu_info =  await self.receive_menu_info()
+                await self.check_video_exists(menu_info)
         
         except Exception as e:
             print("Error" + str(e))
@@ -36,49 +44,51 @@ class Server:
             self.sock.close()
             shutil.rmtree(self.temp_strage_dir_path)
             
-    def receive_menu_info(self,connect):
-        json_length = self.protocol_extract_data_length_from_header(connect)
-        json_data = json.loads(connect.recv(json_length))
+    async def receive_menu_info(self):
+        json_length = await self.protocol_extract_data_length_from_header()
+        json_data = json.loads(await self.reader.read(json_length))
         
         print(json_data)
         return json_data
     
-    def protocol_extract_data_length_from_header(self,connect):
+    async def protocol_extract_data_length_from_header(self):
         STREAM_RATE = 4
-        return int.from_bytes(connect.recv(STREAM_RATE),"big")
+        return int.from_bytes(await self.reader.read(STREAM_RATE),"big")
         
-    def check_video_exists(self,connect,menu_info):
+    async def check_video_exists(self,menu_info):
         file_name_without_whitespace = "".join(menu_info["file_name"].split())
         file_name = self.temp_strage_dir_path + file_name_without_whitespace + menu_info["file_extension"]
 
         if os.path.exists(file_name):
-            self.replay_to_client(connect, "No need")
-            self.handle_convert_video(connect,menu_info,file_name)
+            await self.replay_to_client("No need")
+            await self.handle_convert_video(menu_info,file_name)
         else:
-            self.replay_to_client(connect, "need")
-            self.receive_video(connect,menu_info,file_name)
+            await self.replay_to_client("need")
+            await self.receive_video(menu_info,file_name)
 
-    def replay_to_client(self,connect,message):
+    async def replay_to_client(self,message):
         message_bytes = message.encode("utf-8")
 
         header = self.protocol_make_header(len(message_bytes))
-        connect.sendall(header)
-        connect.sendall(message_bytes)
+        self.writer.write(header)
+        await self.writer.drain()
+        self.writer.write(message_bytes)
+        await self.writer.drain()
         print(message_bytes)
     
     def protocol_make_header(self,data_length):
         STREAM_RATE = 4
         return data_length.to_bytes(STREAM_RATE,"big")
         
-    def receive_video(self,connect,menu_info,file_name):
+    async def receive_video(self,menu_info,file_name):
         STREAM_RATE = 4096
-        data_length = self.protocol_extract_data_length_from_header(connect)
+        data_length = await self.protocol_extract_data_length_from_header()
         print(data_length)
         
         try:
             with open(file_name, "xb+") as video:
                 while data_length > 0:
-                    data = connect.recv(data_length if data_length <= STREAM_RATE else STREAM_RATE)
+                    data = await self.reader.read(data_length if data_length <= STREAM_RATE else STREAM_RATE)
                     video.write(data)
                     data_length -= len(data)
                     print(data_length)
@@ -89,14 +99,14 @@ class Server:
             pass
 
             
-        self.handle_convert_video(connect,menu_info,file_name)
+        self.handle_convert_video(menu_info,file_name)
         
-    def handle_convert_video(self,connect,menu_info,original_file_name):
+    async def handle_convert_video(self,menu_info,original_file_name):
         output_file_name = self.temp_strage_dir_path + self.create_output_file_name(menu_info)
         main_menu = menu_info["main_menu"]
         
         if main_menu == "compress":
-            self.compress_video(original_file_name,menu_info,output_file_name)
+            await self.compress_video(original_file_name,menu_info,output_file_name)
         elif main_menu == "resolution":
             self.change_video_resolution(original_file_name,menu_info,output_file_name)
         elif main_menu == "aspect":
@@ -108,8 +118,7 @@ class Server:
         
         print("end converting")
         
-        self.report_to_end_converting(connect,output_file_name)
-    
+
     def create_output_file_name(self,menu_info):
         original_file_name = "".join(menu_info["file_name"].split())
         main_menu = menu_info["main_menu"]
@@ -130,7 +139,7 @@ class Server:
         
         return f"{original_file_name}-{main_menu}{file_extenstion}"
     
-    def compress_video(self,original_file_name,menu_info,output_file_name):
+    async def compress_video(self,original_file_name,menu_info,output_file_name):
         option_menu = menu_info["option_menu"]
         high = 40
         middle = 34
@@ -146,12 +155,32 @@ class Server:
         print("start to convert the video")
         compress_command = f"ffmpeg -y -i {original_file_name} -c:v libx264 -crf {level} -preset medium -tune zerolatency -c:a copy {output_file_name}"
 
-        subprocess.run(compress_command,shell=True)
+        await self.start_to_convert(compress_command,output_file_name)
+
+    async def start_to_convert(self,ffmpeg_command,file_name):
+        convert_process = subprocess.Popen(shlex.split(ffmpeg_command),shell=True)
+        await self.wait_for_user_to_cancel(convert_process,file_name)
+
+    async def wait_for_user_to_cancel(self,convert_process,file_name):
+        convert_compliton = False
+        while convert_process.poll() is None:
+            print(convert_process.poll())
         
-    def start_to_convert_and_check_if_interrupt(self,ffmpeg_command):
-        convert_thread = threading.Thread(target=lambda:[subprocess.run(ffmpeg_command,shell=True)])
-        convert_thread.start()        
+        convert_compliton = True
+        
+        while convert_compliton is False:
+            message_length = await self.protocol_extract_data_length_from_header()
+            message = await self.reader.read(message_length).decode("utf-8")
+            
+            if message == "cancel":
+                convert_process.send_signal(signal.SIGINT)
+                self.delete_video(file_name)
     
+        print(convert_process.poll())
+
+        if convert_process.returncode == 0:
+            self.report_to_end_converting(file_name)
+
     def change_video_resolution(self,original_file_name,menu_info,output_file_name):
         width = menu_info["option_menu"]["width"]
         height = menu_info["option_menu"]["height"]
@@ -178,6 +207,7 @@ class Server:
         convert_to_mp3 = f"ffmpeg -y -i {original_file_name} -vn {output_file_name}"
 
         subprocess.run(convert_to_mp3,shell=True)
+        
 
     def video_to_gif(self,original_file_name,menu_info,output_file_name):
         start_time = menu_info["option_menu"]["start"]
@@ -189,24 +219,26 @@ class Server:
 
         subprocess.run(convert_to_gif,shell=True)
     
-    def report_to_end_converting(self,connect,file_name):
+    async def report_to_end_converting(self,file_name):
         message = "done"
         header = self.protocol_make_header(len(message))
-        connect.sendall(header)
-        connect.sendall(message.encode("utf-8"))
+        self.writer.write(header)
+        await self.writer.drain()
+        self.writer.write(message.encode("utf-8"))
+        await self.writer.drain()
         
-        self.wait_for_pushing_download(connect,file_name)
+        await self.wait_for_pushing_download(file_name)
         
-    def wait_for_pushing_download(self,connect,file_name):
-        message_length = self.protocol_extract_data_length_from_header(connect)
-        message = connect.recv(message_length).decode("utf-8")
+    async def wait_for_pushing_download(self,file_name):
+        message_length = await self.protocol_extract_data_length_from_header()
+        message = await self.reader.read(message_length).decode("utf-8")
 
         if message == "do":
-            self.send_converted_video(file_name,connect)
+            await self.send_converted_video(file_name)
         elif message == "not":
             self.delete_video(file_name)
 
-    def send_converted_video(self,file_name,connect):
+    async def send_converted_video(self,file_name):
         print("Sending video...")
         STREAM_RATE = 4096
         
@@ -216,13 +248,15 @@ class Server:
                 data_size = video.tell()
                 video.seek(0,0)
                 header = self.protocol_make_header(data_size)
-                connect.sendall(header)
+                self.writer.write(header)
+                await self.writer.drain()
                 
                 data = video.read(4096)
                 
                 while data:
                     print("sending...")
-                    connect.send(data)
+                    self.writer.write(data)
+                    await self.writer.drain()
                     data = video.read(4096)
                 
             print("Done sending...")
@@ -239,7 +273,7 @@ class Server:
 class Main():
     server = Server()
     server.check_and_mkdir_for_strage_dir_path()
-    server.accpet()
+    asyncio.run(server.create_server())
 
 if __name__ == "__main__":
     Main()
