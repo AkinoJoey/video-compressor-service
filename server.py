@@ -153,25 +153,22 @@ class Server:
         self.start_to_convert(compress_command,connect,output_file_name)
         
     def start_to_convert(self,ffmpeg_command,connect,output_file_name):
-        convert_process = subprocess.Popen(shlex.split(ffmpeg_command),shell=True)
-        threading.Thread(target=self.wait_for_pushing_download,args=[])
+        convert_process = subprocess.Popen(shlex.split(ffmpeg_command),shell=True,stdin=subprocess.PIPE)
+        wait_for_user_to_cancel = threading.Thread(target=self.wait_for_user_to_cancel,args=[convert_process,output_file_name,connect])
+        wait_for_user_to_cancel.start()
 
         while convert_process.poll() is None:
-            # time.sleep(0.1)
             pass
-        
-        # convertが正常終了したら
-        if convert_process.poll() == 0:
-            self.report_to_end_converting(connect,output_file_name)
-            return
-
+        return
+    
     def wait_for_user_to_cancel(self,convert_process,file_name,connect):
         message_length = self.protocol_extract_data_length_from_header(connect)
-        message = self.sock.recv(message_length).decode("utf-8")
+        message = connect.recv(message_length).decode("utf-8")
+        print(message)
 
         if message == "cancel":
-            convert_process.send_signal(signal.SIGINT)
-            self.delete_video(file_name)
+            convert_process.communicate(str.encode("q"))
+            # self.delete_video(file_name)
 
     
     def change_video_resolution(self,original_file_name,menu_info,output_file_name):
