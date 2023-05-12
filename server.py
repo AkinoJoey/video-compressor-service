@@ -4,6 +4,9 @@ import json
 import os
 import shutil
 import threading
+import shlex
+import time
+import signal
 
 class Server:
     def __init__(self):
@@ -96,7 +99,7 @@ class Server:
         main_menu = menu_info["main_menu"]
         
         if main_menu == "compress":
-            self.compress_video(original_file_name,menu_info,output_file_name)
+            self.compress_video(original_file_name,menu_info,output_file_name,connect)
         elif main_menu == "resolution":
             self.change_video_resolution(original_file_name,menu_info,output_file_name)
         elif main_menu == "aspect":
@@ -108,7 +111,7 @@ class Server:
         
         print("end converting")
         
-        self.report_to_end_converting(connect,output_file_name)
+        # self.report_to_end_converting(connect,output_file_name)
     
     def create_output_file_name(self,menu_info):
         original_file_name = "".join(menu_info["file_name"].split())
@@ -130,7 +133,7 @@ class Server:
         
         return f"{original_file_name}-{main_menu}{file_extenstion}"
     
-    def compress_video(self,original_file_name,menu_info,output_file_name):
+    def compress_video(self,original_file_name,menu_info,output_file_name,connect):
         option_menu = menu_info["option_menu"]
         high = 40
         middle = 34
@@ -146,11 +149,30 @@ class Server:
         print("start to convert the video")
         compress_command = f"ffmpeg -y -i {original_file_name} -c:v libx264 -crf {level} -preset medium -tune zerolatency -c:a copy {output_file_name}"
 
-        subprocess.run(compress_command,shell=True)
+        # subprocess.run(compress_command,shell=True)
+        self.start_to_convert(compress_command,connect,output_file_name)
         
-    def start_to_convert_and_check_if_interrupt(self,ffmpeg_command):
-        convert_thread = threading.Thread(target=lambda:[subprocess.run(ffmpeg_command,shell=True)])
-        convert_thread.start()        
+    def start_to_convert(self,ffmpeg_command,connect,output_file_name):
+        convert_process = subprocess.Popen(shlex.split(ffmpeg_command),shell=True)
+        threading.Thread(target=self.wait_for_pushing_download,args=[])
+
+        while convert_process.poll() is None:
+            # time.sleep(0.1)
+            pass
+        
+        # convertが正常終了したら
+        if convert_process.poll() == 0:
+            self.report_to_end_converting(connect,output_file_name)
+            return
+
+    def wait_for_user_to_cancel(self,convert_process,file_name,connect):
+        message_length = self.protocol_extract_data_length_from_header(connect)
+        message = self.sock.recv(message_length).decode("utf-8")
+
+        if message == "cancel":
+            convert_process.send_signal(signal.SIGINT)
+            self.delete_video(file_name)
+
     
     def change_video_resolution(self,original_file_name,menu_info,output_file_name):
         width = menu_info["option_menu"]["width"]
