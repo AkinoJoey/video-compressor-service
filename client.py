@@ -101,6 +101,14 @@ class Client:
         if message == "done":
             converting_event.set()
     
+    def tell_server_to_cancel_convertion(self):
+        message = "cancel"
+        message_bytes = message.encode("utf-8")
+        header = self.protocol_make_header(len(message_bytes))
+
+        self.sock.sendall(header)
+        self.sock.sendall(message_bytes)
+    
     def tell_server_want_to_download_or_not(self,download_event,do_or_not):
         message_bytes = do_or_not.encode("utf-8")
         header = self.protocol_make_header(len(message_bytes))
@@ -172,10 +180,12 @@ class ViewController:
     def display_alert(error_msg):
         messagebox.showerror(title="error",message=error_msg)
             
-    def display_askyesno(self,msg,callback=None):
+    def display_askyesno_and_cancel_convertion(self,msg,event):
         anser = messagebox.askyesno(message=msg)
+
         if anser:
-            print("ここに中断するためのcallback関数を入れる")
+            self.client.tell_server_to_cancel_convertion()
+            event.set()
 
     def create_main_manu_page(self):
         # rootの構成
@@ -609,7 +619,7 @@ class ViewController:
         progressbar = ttk.Progressbar(mainframe,length=200,orient=HORIZONTAL,mode='indeterminate')
         progressbar.grid(column=0,row=0)
         progressbar.start(10)
-        prosessing_window.protocol("WM_DELETE_WINDOW",func=lambda:[self.display_askyesno("本当に終了しますか？")])
+        prosessing_window.protocol("WM_DELETE_WINDOW",func=lambda:[self.display_askyesno_and_cancel_convertion("本当に終了しますか？",event)])
         
         print("display progress bar....")
         
