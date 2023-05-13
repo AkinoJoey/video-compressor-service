@@ -153,23 +153,33 @@ class Server:
         self.start_to_convert(compress_command,connect,output_file_name)
         
     def start_to_convert(self,ffmpeg_command,connect,output_file_name):
-        convert_process = subprocess.Popen(shlex.split(ffmpeg_command),shell=True,stdin=subprocess.PIPE)
+        convert_process = subprocess.Popen(shlex.split(ffmpeg_command),stdin=subprocess.PIPE)
         wait_for_user_to_cancel = threading.Thread(target=self.wait_for_user_to_cancel,args=[convert_process,output_file_name,connect])
-        wait_for_user_to_cancel.start()
+        
+        successful = self.monitor_process(convert_process,wait_for_user_to_cancel)
 
-        while convert_process.poll() is None:
-            pass
-        return
-    
+        if successful:
+            print(wait_for_user_to_cancel.is_alive())
+            self.report_to_end_converting(connect,output_file_name)
+        
     def wait_for_user_to_cancel(self,convert_process,file_name,connect):
         message_length = self.protocol_extract_data_length_from_header(connect)
         message = connect.recv(message_length).decode("utf-8")
-        print(message)
+        print( message + "in wait for user to cancel")
 
         if message == "cancel":
             convert_process.communicate(str.encode("q"))
             # self.delete_video(file_name)
-
+    
+    def monitor_process(self,process,thread):
+        thread.start()
+        
+        while process.poll() is None:
+            pass
+        
+        if process.poll() == 0:
+            return True
+        return False
     
     def change_video_resolution(self,original_file_name,menu_info,output_file_name):
         width = menu_info["option_menu"]["width"]
@@ -209,6 +219,7 @@ class Server:
         subprocess.run(convert_to_gif,shell=True)
     
     def report_to_end_converting(self,connect,file_name):
+        print("report to end converting")
         message = "done"
         header = self.protocol_make_header(len(message))
         connect.sendall(header)
@@ -217,6 +228,7 @@ class Server:
         self.wait_for_pushing_download(connect,file_name)
         
     def wait_for_pushing_download(self,connect,file_name):
+        print("wait for pushing download")
         message_length = self.protocol_extract_data_length_from_header(connect)
         message = connect.recv(message_length).decode("utf-8")
 
