@@ -154,13 +154,12 @@ class Server:
         
     def start_to_convert(self,ffmpeg_command,connect,output_file_name):
         convert_process = subprocess.Popen(shlex.split(ffmpeg_command),stdin=subprocess.PIPE)
-        wait_for_user_to_cancel = threading.Thread(target=self.wait_for_user_to_cancel,args=[convert_process,output_file_name,connect])
+        monitor_process_thread = threading.Thread(target=self.monitor_process,args=[convert_process])
+        monitor_process_thread.start()
+        # wait_for_user_to_cancel = threading.Thread(target=self.wait_for_user_to_cancel,args=[convert_process,output_file_name,connect])
+        while monitor_process_thread.is_alive():
+            pass
         
-        successful = self.monitor_process(convert_process,wait_for_user_to_cancel)
-
-        if successful:
-            print(wait_for_user_to_cancel.is_alive())
-            self.report_to_end_converting(connect,output_file_name)
         
     def wait_for_user_to_cancel(self,convert_process,file_name,connect):
         message_length = self.protocol_extract_data_length_from_header(connect)
@@ -172,8 +171,6 @@ class Server:
             # self.delete_video(file_name)
     
     def monitor_process(self,process,thread):
-        thread.start()
-        
         while process.poll() is None:
             pass
         
