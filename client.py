@@ -112,7 +112,7 @@ class Client:
     def tell_server_want_to_download_or_not(self,download_event,do_or_not):
         message_bytes = do_or_not.encode("utf-8")
         header = self.protocol_make_header(len(message_bytes))
-
+        print(message_bytes)
         if message_bytes == b"do":
             self.sock.sendall(header)
             self.sock.sendall(message_bytes)
@@ -619,10 +619,16 @@ class ViewController:
         progressbar = ttk.Progressbar(mainframe,length=200,orient=HORIZONTAL,mode='indeterminate')
         progressbar.grid(column=0,row=0)
         progressbar.start(10)
-        prosessing_window.protocol("WM_DELETE_WINDOW",func=lambda:[self.display_askyesno_and_cancel_convertion("本当に終了しますか？",event)])
+        
+        # closeボタンを押した時に閉じる
+        destroy_progressbar_event = threading.Event()
+        destory_progressbar_thread_pusing_close_btn = threading.Thread(target=self.wait_for_destorying_open_window,args=[prosessing_window,destroy_progressbar_event])
+        destory_progressbar_thread_pusing_close_btn.start()
+        prosessing_window.protocol("WM_DELETE_WINDOW",func=lambda:[self.display_askyesno_and_cancel_convertion("本当に終了しますか？",destroy_progressbar_event)])
         
         print("display progress bar....")
         
+        # convertやdownloadが終わった時に閉じる
         destory_progressbar_thread = threading.Thread(target=self.wait_for_destorying_open_window,args=[prosessing_window,event])
         destory_progressbar_thread.start()
         
