@@ -116,17 +116,9 @@ class Server:
         elif main_menu == "gif":
             self.video_to_gif(original_file_name,menu_info,output_file_name)
         
-        print("end converting")
-        
-
     def create_output_file_name(self,menu_info):
         original_file_name = "".join(menu_info["file_name"].split())
         main_menu = menu_info["main_menu"]
-        
-        if type(menu_info["option_menu"]) == dict:
-            option_menu = "-".join(menu_info["option_menu"].values())
-        elif type(menu_info["option_menu"]) == str:
-            option_menu = menu_info["option_menu"] 
         
         if main_menu == "audio":
             file_extenstion = ".mp3"
@@ -154,7 +146,6 @@ class Server:
             
         print("start to convert the video")
         compress_command = f"ffmpeg -hide_banner -loglevel error -y -i {original_file_name} -c:v libx264 -crf {level} -preset medium -tune zerolatency -c:a copy {output_file_name}"
-        # -hide_banner -loglevel error
         await self.start_to_convert(compress_command,output_file_name)
 
     async def start_to_convert(self,ffmpeg_command,file_name):
@@ -163,8 +154,6 @@ class Server:
         monitor_task = asyncio.ensure_future(self.monitor_process(convert_process,cancel_task))
         await asyncio.wait([cancel_task,monitor_task],return_when=asyncio.FIRST_COMPLETED)
         
-        print("cancel task was cancelld" +  str(cancel_task.cancelled()))
-
         if cancel_task.cancelled():
             await self.report_to_end_converting(file_name)
 
@@ -178,8 +167,6 @@ class Server:
                 convert_process.communicate(str.encode("q"))
                         
     async def monitor_process(self,process,cancel_task):
-        print("monitor process")
-
         while process.poll() is None:
            await asyncio.sleep(0.1)
         
