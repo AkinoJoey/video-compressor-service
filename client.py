@@ -98,6 +98,7 @@ class Client:
     def wait_to_convert(self,converting_event):
         message_length = self.protocol_extract_data_length_from_header()
         message = self.sock.recv(message_length).decode("utf-8")
+
         if message == "done":
             converting_event.set()
     
