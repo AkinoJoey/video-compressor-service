@@ -98,7 +98,6 @@ class Server:
         except FileExistsError:
             pass
 
-            
         await self.handle_convert_video(menu_info,file_name)
         
     async def handle_convert_video(self,menu_info,original_file_name):
@@ -108,13 +107,13 @@ class Server:
         if main_menu == "compress":
             await self.compress_video(original_file_name,menu_info,output_file_name)
         elif main_menu == "resolution":
-            self.change_video_resolution(original_file_name,menu_info,output_file_name)
+            await self.change_video_resolution(original_file_name,menu_info,output_file_name)
         elif main_menu == "aspect":
-            self.change_video_aspect(original_file_name,menu_info,output_file_name)
+            await self.change_video_aspect(original_file_name,menu_info,output_file_name)
         elif main_menu == "audio":
-            self.video_to_mp3(original_file_name,output_file_name)
+            await self.video_to_mp3(original_file_name,output_file_name)
         elif main_menu == "gif":
-            self.video_to_gif(original_file_name,menu_info,output_file_name)
+            await self.video_to_gif(original_file_name,menu_info,output_file_name)
         
     def create_output_file_name(self,menu_info):
         original_file_name = "".join(menu_info["file_name"].split())
@@ -156,6 +155,7 @@ class Server:
         
         if cancel_task.cancelled():
             await self.report_to_end_converting(file_name)
+            print("repot end converting")
 
     async def wait_for_user_to_cancel(self,convert_process):
             print("wait for user to cancel")   
@@ -172,17 +172,17 @@ class Server:
         
         cancel_task.cancel()
 
-    def change_video_resolution(self,original_file_name,menu_info,output_file_name):
+    async def change_video_resolution(self,original_file_name,menu_info,output_file_name):
         width = menu_info["option_menu"]["width"]
         height = menu_info["option_menu"]["height"]
         
         print("start to convert the video")
         
-        change_resolution_command = f"ffmpeg -y -i {original_file_name} -filter:v scale={width}:{height} -c:a copy {output_file_name}"
+        change_resolution_command = f"ffmpeg -hide_banner -loglevel error -y -i {original_file_name} -filter:v scale={width}:{height} -c:a copy {output_file_name}"
         
-        subprocess.run(change_resolution_command,shell=True)   
+        await self.start_to_convert(change_resolution_command,output_file_name) 
 
-    def change_video_aspect(self,original_file_name,menu_info,output_file_name):
+    async def change_video_aspect(self,original_file_name,menu_info,output_file_name):
         width = menu_info["option_menu"]["width"]
         height = menu_info["option_menu"]["height"]
         
@@ -190,17 +190,16 @@ class Server:
 
         change_aspect_command = f"ffmpeg -y -i {original_file_name}  -c copy -aspect {width}:{height} {output_file_name}"
     
-        subprocess.run(change_aspect_command,shell=True)   
+        await self.start_to_convert(change_aspect_command,output_file_name)  
 
-    def video_to_mp3(self,original_file_name,output_file_name):
+    async def video_to_mp3(self,original_file_name,output_file_name):
         print("start to convert the video")
 
         convert_to_mp3 = f"ffmpeg -y -i {original_file_name} -vn {output_file_name}"
 
-        subprocess.run(convert_to_mp3,shell=True)
+        await self.start_to_convert(convert_to_mp3,output_file_name)
         
-
-    def video_to_gif(self,original_file_name,menu_info,output_file_name):
+    async def video_to_gif(self,original_file_name,menu_info,output_file_name):
         start_time = menu_info["option_menu"]["start"]
         end_time = menu_info["option_menu"]["end"]
 
@@ -208,7 +207,7 @@ class Server:
 
         convert_to_gif = f"ffmpeg -ss {start_time} -y -i {original_file_name} -t {end_time} -r 5 {output_file_name}"
 
-        subprocess.run(convert_to_gif,shell=True)
+        await self.start_to_convert(convert_to_gif,output_file_name)
     
     async def report_to_end_converting(self,file_name):
         message = "done"
