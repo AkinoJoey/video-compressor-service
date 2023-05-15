@@ -159,44 +159,32 @@ class Server:
 
     async def start_to_convert(self,ffmpeg_command,file_name):
         convert_process = subprocess.Popen(shlex.split(ffmpeg_command),stdin=subprocess.PIPE)
-        # await self.wait_for_user_to_cancel(convert_process)
-        # async with asyncio.TaskGroup() as tg:
-        #     cancel_task =  tg.create_task(self.wait_for_user_to_cancel(convert_process))
-        #     monitor_task =  tg.create_task(self.monitor_process(convert_process,file_name,cancel_task))
-            
-        print("done task group")
-        await self.monitor_process(convert_process,file_name)
+        cancel_task = asyncio.ensure_future(self.wait_for_user_to_cancel(convert_process))
+        monitor_task = asyncio.ensure_future(self.monitor_process(convert_process,cancel_task))
+        await asyncio.wait([cancel_task,monitor_task],return_when=asyncio.FIRST_COMPLETED)
         
-        
+        print("cancel task was cancelld" +  str(cancel_task.cancelled()))
+
+        if cancel_task.cancelled():
+            await self.report_to_end_converting(file_name)
+
     async def wait_for_user_to_cancel(self,convert_process):
             print("wait for user to cancel")   
-            try: 
-                message_length = await self.protocol_extract_data_length_from_header()
-                message = await self.reader.read(message_length)
-                print(message.decode("utf-8"))
-                
-                if message.decode("utf-8") == "cancel":
-                    convert_process.communicate(str.encode("q"))
-                    
-            except asyncio.CancelledError:
-                print("user did not cancel.")
-                
-    async def monitor_process(self,process,file_name):
-        loop = asyncio.new_event_loop()
-        cancel_future = asyncio.run_coroutine_threadsafe(self.wait_for_user_to_cancel(process),loop)
-        
+            message_length = await self.protocol_extract_data_length_from_header()
+            message = await self.reader.read(message_length)
+            print(message.decode("utf-8"))
+            
+            if message.decode("utf-8") == "cancel":
+                convert_process.communicate(str.encode("q"))
+                        
+    async def monitor_process(self,process,cancel_task):
         print("monitor process")
+
         while process.poll() is None:
-           pass
+           await asyncio.sleep(0.1)
         
-        cancel_future.cancel()
-        print(cancel_future.done())
-        print(process.poll())
-        print(process.returncode)
-        
-        # if process.poll() == 0:
-        #     await self.report_to_end_converting(file_name)
-    
+        cancel_task.cancel()
+
     def change_video_resolution(self,original_file_name,menu_info,output_file_name):
         width = menu_info["option_menu"]["width"]
         height = menu_info["option_menu"]["height"]
