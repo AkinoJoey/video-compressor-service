@@ -154,8 +154,9 @@ class Server:
         await asyncio.wait([cancel_task,monitor_task],return_when=asyncio.FIRST_COMPLETED)
         
         if cancel_task.cancelled():
-            await self.report_to_end_converting(file_name)
-            print("repot end converting")
+            await self.report_to_end_converting(file_name,"done")
+        else:
+            await self.report_to_end_converting(file_name,"cancel")
 
     async def wait_for_user_to_cancel(self,convert_process):
             print("wait for user to cancel")   
@@ -209,15 +210,15 @@ class Server:
 
         await self.start_to_convert(convert_to_gif,output_file_name)
     
-    async def report_to_end_converting(self,file_name):
-        message = "done"
+    async def report_to_end_converting(self,file_name,message):
         header = self.protocol_make_header(len(message))
         self.writer.write(header)
         await self.writer.drain()
         self.writer.write(message.encode("utf-8"))
         await self.writer.drain()
         
-        await self.wait_for_pushing_download(file_name)
+        if message == "done":
+            await self.wait_for_pushing_download(file_name)
         
     async def wait_for_pushing_download(self,file_name):
         message_length = await self.protocol_extract_data_length_from_header()
