@@ -1,10 +1,8 @@
-import socket
 import subprocess
 import json
 import os
 import shutil
 import shlex
-import signal
 import asyncio
 
 class Server:
@@ -65,6 +63,13 @@ class Server:
         else:
             await self.replay_to_client("need")
             await self.receive_video(menu_info,file_name)
+            receive_video_future = asyncio.ensure_future(self.receive_video(menu_info,file_name))
+            cancel_future = asyncio.ensure_future(self.wait_for_user_to_cancel())
+            monitor_future = asyncio.ensure_future(self.monitor_future(receive_video_future,cancel_future))
+            await asyncio.wait([cancel_future,monitor_future],return_when=asyncio.FIRST_COMPLETED)
+
+            if cancel_future.cancelled():
+                await self.handle_convert_video(menu_info,file_name)
 
     async def replay_to_client(self,message):
         message_bytes = message.encode("utf-8")
@@ -98,7 +103,7 @@ class Server:
         except FileExistsError:
             pass
 
-        await self.handle_convert_video(menu_info,file_name)
+        # await self.handle_convert_video(menu_info,file_name)
         
     async def handle_convert_video(self,menu_info,original_file_name):
         output_file_name = self.temp_strage_dir_path + self.create_output_file_name(menu_info)
@@ -149,11 +154,11 @@ class Server:
 
     async def start_to_convert(self,ffmpeg_command,file_name):
         convert_process = subprocess.Popen(shlex.split(ffmpeg_command),stdin=subprocess.PIPE)
-        cancel_task = asyncio.ensure_future(self.wait_for_user_to_cancel(convert_process))
-        monitor_task = asyncio.ensure_future(self.monitor_process(convert_process,cancel_task))
-        await asyncio.wait([cancel_task,monitor_task],return_when=asyncio.FIRST_COMPLETED)
+        cancel_future = asyncio.ensure_future(self.wait_for_user_to_cancel(convert_process))
+        monitor_future = asyncio.ensure_future(self.monitor_process(convert_process,cancel_future))
+        await asyncio.wait([cancel_future,monitor_future],return_when=asyncio.FIRST_COMPLETED)
         
-        if cancel_task.cancelled():
+        if cancel_future.cancelled():
             await self.report_to_end_converting(file_name,"done")
         else:
             await self.report_to_end_converting(file_name,"cancel")
@@ -166,12 +171,27 @@ class Server:
             
             if message.decode("utf-8") == "cancel":
                 convert_process.communicate(str.encode("q"))
+
+    async def wait_for_user_to_cancel(self,future):
+            print("wait for user to cancel")   
+            message_length = await self.protocol_extract_data_length_from_header()
+            message = await self.reader.read(message_length)
+            print(message.decode("utf-8"))
+            
+            if message.decode("utf-8") == "cancel":
+                future.cancel
                         
-    async def monitor_process(self,process,cancel_task):
+    async def monitor_process(self,process,cancel_future):
         while process.poll() is None:
            await asyncio.sleep(0.1)
         
-        cancel_task.cancel()
+        cancel_future.cancel()
+
+    async def monitor_future(self,running_future,cancel_future):
+        while not running_future.done():
+           await asyncio.sleep(0.1)
+        
+        cancel_future.cancel()
 
     async def change_video_resolution(self,original_file_name,menu_info,output_file_name):
         width = menu_info["option_menu"]["width"]
