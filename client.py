@@ -24,13 +24,13 @@ class Client:
             "option_menu":None
         }
         
-    def connect(self,converting_event,connect_event):
+    def connect(self,converting_event,connect_event,cancel_event):
         try:
             self.sock.connect((self.server_address, self.server_port))
             self.socket_connecting = True
             connect_event.set()
             print("client server" + str(self.socket_connecting))
-            self.send_menu_info(converting_event)
+            self.send_menu_info(converting_event,cancel_event)
             
         except ConnectionRefusedError:
             error_message = "サーバーに接続できません"
@@ -42,7 +42,7 @@ class Client:
             ViewController.display_alert(error_message)
             converting_event.set()
             
-    def send_menu_info(self,converting_event):
+    def send_menu_info(self,converting_event,cancel_event):
         print("sending menu info ...")
         json_file = json.dumps(self.menu_info)
         json_file_bytes = json_file.encode("utf-8")
@@ -51,19 +51,19 @@ class Client:
         self.sock.sendall(header)
         self.sock.sendall(json_file_bytes)
 
-        self.wait_for_video_send(converting_event)
+        self.wait_for_video_send(converting_event,cancel_event)
     
     def protocol_make_header(self,data_length):
         STREAM_RATE = 4
         return data_length.to_bytes(STREAM_RATE,"big")
 
-    def wait_for_video_send(self,converting_event):
+    def wait_for_video_send(self,converting_event,cancel_event):
         message_from_server_length = self.protocol_extract_data_length_from_header()
         message_from_server = self.sock.recv(message_from_server_length).decode("utf-8")
         print(message_from_server)
 
         if message_from_server == "need":
-            self.send_video(converting_event)
+            self.send_video(converting_event,cancel_event)
         elif message_from_server == "No need":
             self.wait_to_convert(converting_event)
         else:
@@ -73,7 +73,7 @@ class Client:
         STREAM_RATE = 4
         return int.from_bytes(self.sock.recv(STREAM_RATE),"big")
     
-    def send_video(self,converting_event):
+    def send_video(self,converting_event,cancel_event):
         print("Sending video...")
         print(self.file_path)
         STREAM_RATE = 4096
@@ -87,13 +87,13 @@ class Client:
             
             data = video.read(STREAM_RATE)
             
-            while data:
+            while data and not cancel_event.is_set():
                 self.sock.send(data)
                 data = video.read(STREAM_RATE)
             
-        print("Done sending...")
-        
-        self.wait_to_convert(converting_event)
+        if not cancel_event.is_set():
+            print("Done sending...")
+            self.wait_to_convert(converting_event)
         
     def wait_to_convert(self,converting_event):
         message_length = self.protocol_extract_data_length_from_header()
@@ -102,11 +102,11 @@ class Client:
         if message == "done":
             converting_event.set()
     
-    def tell_server_to_cancel_convertion(self):
+    def tell_server_to_cancel(self):
         message = "cancel"
         message_bytes = message.encode("utf-8")
         header = self.protocol_make_header(len(message_bytes))
-
+        print(message)
         self.sock.sendall(header)
         self.sock.sendall(message_bytes)
     
@@ -181,12 +181,13 @@ class ViewController:
     def display_alert(error_msg):
         messagebox.showerror(title="error",message=error_msg)
             
-    def display_askyesno_and_cancel_convertion(self,msg,event):
+    def display_askyesno_and_cancel_convertion(self,msg,close_event,cancel_thread_event):
         anser = messagebox.askyesno(message=msg)
 
         if anser:
-            self.client.tell_server_to_cancel_convertion()
-            event.set()
+            self.client.tell_server_to_cancel()
+            close_event.set()
+            cancel_thread_event.set()
 
     def create_main_manu_page(self):
         # rootの構成
@@ -377,19 +378,20 @@ class ViewController:
         option_window.destroy()
         converting_event = threading.Event()
         connect_event = threading.Event()
+        cancel_event = threading.Event()
         
         if self.client.socket_connecting:
-            connecting_thread = threading.Thread(target=self.client.send_menu_info,args=[converting_event])
+            connecting_thread = threading.Thread(target=self.client.send_menu_info,args=[converting_event,cancel_event])
             connecting_thread.start()
             create_download_window_thread = threading.Thread(target=self.create_download_window,args=[converting_event])
             create_download_window_thread.start()
         else:
-            connect_thread = threading.Thread(target=self.client.connect,args=[converting_event,connect_event])
+            connect_thread = threading.Thread(target=self.client.connect,args=[converting_event,connect_event,cancel_event])
             connect_thread.start()
             create_download_window_thread = threading.Thread(target=self.create_download_window,args=[converting_event,connect_event])
             create_download_window_thread.start()
         
-        self.display_progressbar("処理中",converting_event)
+        self.display_progressbar("処理中",converting_event,cancel_event)
         
     def create_resolution_option_window(self):
         option_window = self.create_new_window("解像度")
@@ -609,7 +611,7 @@ class ViewController:
         option_window.grab_set()
         option_window.focus_set()
 
-    def display_progressbar(self,title,event):
+    def display_progressbar(self,title,event,cancel_event):
         prosessing_window = self.create_new_window(title)
 
         mainframe = ttk.Frame(prosessing_window,padding=50)
@@ -625,7 +627,7 @@ class ViewController:
         destroy_progressbar_event = threading.Event()
         destory_progressbar_thread_pusing_close_btn = threading.Thread(target=self.wait_for_destorying_open_window,args=[prosessing_window,destroy_progressbar_event])
         destory_progressbar_thread_pusing_close_btn.start()
-        prosessing_window.protocol("WM_DELETE_WINDOW",func=lambda:[self.display_askyesno_and_cancel_convertion("本当に終了しますか？",destroy_progressbar_event)])
+        prosessing_window.protocol("WM_DELETE_WINDOW",func=lambda:[self.display_askyesno_and_cancel_convertion("本当に終了しますか？",destroy_progressbar_event,cancel_event)])
         
         print("display progress bar....")
         
