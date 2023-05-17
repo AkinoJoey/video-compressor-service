@@ -4,6 +4,8 @@ import os
 import shutil
 import shlex
 import asyncio
+import logging
+import threading
 
 class Server:
     def __init__(self):
@@ -32,6 +34,7 @@ class Server:
         
         try:
             while True:
+                print("return True")
                 menu_info =  await self.receive_menu_info()
                 await self.check_video_exists(menu_info)
         
@@ -62,14 +65,21 @@ class Server:
             await self.handle_convert_video(menu_info,file_name)
         else:
             await self.replay_to_client("need")
-            await self.receive_video(menu_info,file_name)
-            receive_video_future = asyncio.ensure_future(self.receive_video(menu_info,file_name))
-            cancel_future = asyncio.ensure_future(self.wait_for_user_to_cancel())
-            monitor_future = asyncio.ensure_future(self.monitor_future(receive_video_future,cancel_future))
-            await asyncio.wait([cancel_future,monitor_future],return_when=asyncio.FIRST_COMPLETED)
-
-            if cancel_future.cancelled():
-                await self.handle_convert_video(menu_info,file_name)
+            cancel_event = asyncio.Event()
+            loop = asyncio.get_running_loop()
+            threading.Thread(target=self.task_thread, args=[loop,menu_info,file_name,cancel_event]).start()
+            await self.wait_for_task_to_cancel(file_name,cancel_event)
+        
+            print("end either future")
+            if not cancel_event.is_set():
+                # await self.handle_convert_video(menu_info,file_name)
+                print("次に進む")
+            else:
+                print("キャンセルされなかった")
+    
+    def task_thread(self,loop,menu_info,file_name,event):
+        coro = self.receive_video(menu_info,file_name,event)
+        future = asyncio.run_coroutine_threadsafe(coro, loop)
 
     async def replay_to_client(self,message):
         message_bytes = message.encode("utf-8")
@@ -85,23 +95,23 @@ class Server:
         STREAM_RATE = 4
         return data_length.to_bytes(STREAM_RATE,"big")
         
-    async def receive_video(self,menu_info,file_name):
+    async def receive_video(self,menu_info,file_name,event):
         STREAM_RATE = 4096
         data_length = await self.protocol_extract_data_length_from_header()
         print(data_length)
         
         try:
             with open(file_name, "xb+") as video:
-                while data_length > 0:
+                while data_length > 0 and not event.is_set():
+                    await asyncio.sleep(0.0001)
                     data = await self.reader.read(data_length if data_length <= STREAM_RATE else STREAM_RATE)
                     video.write(data)
-                    data_length -= len(data)
-                    print(data_length)
+                    
 
             print("Done receiving video...")
             
         except FileExistsError:
-            pass
+            pass        
 
         # await self.handle_convert_video(menu_info,file_name)
         
@@ -154,16 +164,16 @@ class Server:
 
     async def start_to_convert(self,ffmpeg_command,file_name):
         convert_process = subprocess.Popen(shlex.split(ffmpeg_command),stdin=subprocess.PIPE)
-        cancel_future = asyncio.ensure_future(self.wait_for_user_to_cancel(convert_process))
-        monitor_future = asyncio.ensure_future(self.monitor_process(convert_process,cancel_future))
-        await asyncio.wait([cancel_future,monitor_future],return_when=asyncio.FIRST_COMPLETED)
+        cancel_task = asyncio.ensure_future(self.wait_for_process_to_cancel(convert_process))
+        monitor_process = asyncio.ensure_future(self.monitor_process(convert_process,cancel_task))
+        await asyncio.wait([cancel_task,monitor_process],return_when=asyncio.FIRST_COMPLETED)
         
-        if cancel_future.cancelled():
+        if cancel_task.cancelled():
             await self.report_to_end_converting(file_name,"done")
         else:
             await self.report_to_end_converting(file_name,"cancel")
 
-    async def wait_for_user_to_cancel(self,convert_process):
+    async def wait_for_process_to_cancel(self,convert_process):
             print("wait for user to cancel")   
             message_length = await self.protocol_extract_data_length_from_header()
             message = await self.reader.read(message_length)
@@ -172,26 +182,30 @@ class Server:
             if message.decode("utf-8") == "cancel":
                 convert_process.communicate(str.encode("q"))
 
-    async def wait_for_user_to_cancel(self,future):
-            print("wait for user to cancel")   
-            message_length = await self.protocol_extract_data_length_from_header()
-            message = await self.reader.read(message_length)
-            print(message.decode("utf-8"))
-            
-            if message.decode("utf-8") == "cancel":
-                future.cancel
+    async def wait_for_task_to_cancel(self,file_name,event):
+        await asyncio.sleep(1)
+        print("wait for user to cancel")   
+        message_length = await self.protocol_extract_data_length_from_header()
+        message = await self.reader.read(message_length)
+        print(message.decode("utf-8"))
+        print(message.decode("utf-8") == "cancel")
+        
+        if message.decode("utf-8") == "cancel":
+            print("user cancel")
+            event.set()
+            self.delete_video(file_name)
                         
-    async def monitor_process(self,process,cancel_future):
+    async def monitor_process(self,process,cancel_task):
         while process.poll() is None:
            await asyncio.sleep(0.1)
         
-        cancel_future.cancel()
+        cancel_task.cancel()
 
-    async def monitor_future(self,running_future,cancel_future):
-        while not running_future.done():
+    async def monitor_task(self,running_task,cancel_task):
+        while not running_task.done():
            await asyncio.sleep(0.1)
         
-        cancel_future.cancel()
+        cancel_task.cancel()
 
     async def change_video_resolution(self,original_file_name,menu_info,output_file_name):
         width = menu_info["option_menu"]["width"]
@@ -282,6 +296,8 @@ class Server:
         ("Deleted...")
             
 class Main():
+    PYTHONASYNCIODEBUG = 1
+    logging.basicConfig(level=logging.DEBUG)
     server = Server()
     server.check_and_mkdir_for_strage_dir_path()
     asyncio.run(server.create_server())
