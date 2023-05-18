@@ -5,7 +5,6 @@ import shutil
 import shlex
 import asyncio
 import logging
-import threading
 
 class Server:
     def __init__(self):
@@ -74,10 +73,6 @@ class Server:
             else:
                 print("キャンセルされなかった")
                 await self.handle_convert_video(menu_info,file_name)
-    
-    def task_thread(self,loop,menu_info,file_name,event):
-        coro = self.receive_video(menu_info,file_name,event)
-        future = asyncio.run_coroutine_threadsafe(coro, loop)
 
     async def replay_to_client(self,message):
         message_bytes = message.encode("utf-8")
@@ -104,7 +99,6 @@ class Server:
                     data = await self.reader.read(data_length if data_length <= STREAM_RATE else STREAM_RATE)
                     video.write(data)
                     data_length -= len(data)
-                    print(data_length)
 
                     if data == b"cancel":
                         print(data)
@@ -114,8 +108,6 @@ class Server:
         except FileExistsError:
             pass        
 
-        # await self.handle_convert_video(menu_info,file_name)
-        
     async def handle_convert_video(self,menu_info,original_file_name):
         output_file_name = self.temp_strage_dir_path + self.create_output_file_name(menu_info)
         main_menu = menu_info["main_menu"]
@@ -182,28 +174,9 @@ class Server:
             
             if message.decode("utf-8") == "cancel":
                 convert_process.communicate(str.encode("q"))
-
-    async def wait_for_task_to_cancel(self,file_name,event):
-        await asyncio.sleep(1)
-        print("wait for user to cancel")   
-        message_length = await self.protocol_extract_data_length_from_header()
-        message = await self.reader.read(message_length)
-        print(message.decode("utf-8"))
-        print(message.decode("utf-8") == "cancel")
-        
-        if message.decode("utf-8") == "cancel":
-            print("user cancel")
-            event.set()
-            self.delete_video(file_name)
                         
     async def monitor_process(self,process,cancel_task):
         while process.poll() is None:
-           await asyncio.sleep(0.1)
-        
-        cancel_task.cancel()
-
-    async def monitor_task(self,running_task,cancel_task):
-        while not running_task.done():
            await asyncio.sleep(0.1)
         
         cancel_task.cancel()
