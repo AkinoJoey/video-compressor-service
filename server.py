@@ -66,16 +66,14 @@ class Server:
         else:
             await self.replay_to_client("need")
             cancel_event = asyncio.Event()
-            loop = asyncio.get_running_loop()
-            threading.Thread(target=self.task_thread, args=[loop,menu_info,file_name,cancel_event]).start()
-            await self.wait_for_task_to_cancel(file_name,cancel_event)
+            await self.receive_video(menu_info,file_name,cancel_event)
         
-            print("end either future")
-            if not cancel_event.is_set():
-                # await self.handle_convert_video(menu_info,file_name)
-                print("次に進む")
+            if cancel_event.is_set():
+                print("キャンセルされた")
+                self.delete_video(file_name)
             else:
                 print("キャンセルされなかった")
+                await self.handle_convert_video(menu_info,file_name)
     
     def task_thread(self,loop,menu_info,file_name,event):
         coro = self.receive_video(menu_info,file_name,event)
@@ -102,13 +100,16 @@ class Server:
         
         try:
             with open(file_name, "xb+") as video:
-                while data_length > 0 and not event.is_set():
-                    await asyncio.sleep(0.0001)
+                while data_length > 0:
                     data = await self.reader.read(data_length if data_length <= STREAM_RATE else STREAM_RATE)
                     video.write(data)
-                    
+                    data_length -= len(data)
+                    print(data_length)
 
-            print("Done receiving video...")
+                    if data == b"cancel":
+                        print(data)
+                        event.set()
+                        break                    
             
         except FileExistsError:
             pass        
@@ -175,8 +176,8 @@ class Server:
 
     async def wait_for_process_to_cancel(self,convert_process):
             print("wait for user to cancel")   
-            message_length = await self.protocol_extract_data_length_from_header()
-            message = await self.reader.read(message_length)
+            cancel_message = "cancel".encode("utf-8")
+            message = await self.reader.read(len(cancel_message))
             print(message.decode("utf-8"))
             
             if message.decode("utf-8") == "cancel":
