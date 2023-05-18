@@ -90,6 +90,7 @@ class Client:
             while data and not cancel_event.is_set():
                 self.sock.send(data)
                 data = video.read(STREAM_RATE)
+                # print(data)
             
         if not cancel_event.is_set():
             print("Done sending...")
@@ -105,9 +106,7 @@ class Client:
     def tell_server_to_cancel(self):
         message = "cancel"
         message_bytes = message.encode("utf-8")
-        header = self.protocol_make_header(len(message_bytes))
         print(message)
-        self.sock.sendall(header)
         self.sock.sendall(message_bytes)
     
     def tell_server_want_to_download_or_not(self,download_event,do_or_not):
@@ -658,10 +657,11 @@ class ViewController:
 
         wait_and_report_to_complete_work_thread = threading.Thread(target=self.wait_and_report_to_complete_work,args=["ダウンロードが完了しました。",download_event])
         
+        cancel_event = threading.Event()
         ttk.Button(mainframe, text="Download",command=lambda:[
             download_window.destroy(),
             request_download_thread.start(),
-            self.display_progressbar("ダウンロード中",download_event),
+            self.display_progressbar("ダウンロード中",download_event,cancel_event),
             wait_and_report_to_complete_work_thread.start()
             ]).grid(column=0, row=0)
 
