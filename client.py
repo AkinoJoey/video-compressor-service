@@ -109,20 +109,20 @@ class Client:
         print(message)
         self.sock.sendall(message_bytes)
     
-    def tell_server_want_to_download_or_not(self,download_event,do_or_not):
+    def tell_server_want_to_download_or_not(self,download_event,do_or_not,canecl_event):
         message_bytes = do_or_not.encode("utf-8")
         header = self.protocol_make_header(len(message_bytes))
         print(message_bytes)
         if message_bytes == b"do":
             self.sock.sendall(header)
             self.sock.sendall(message_bytes)
-            self.download_video(download_event)
+            self.download_video(download_event,canecl_event)
             
         elif message_bytes == b"not":
             self.sock.sendall(header)
             self.sock.sendall(message_bytes)
         
-    def download_video(self,download_event):
+    def download_video(self,download_event,cancel_event):
         print(threading.active_count())
         print(threading.current_thread())
 
@@ -136,12 +136,13 @@ class Client:
         try:
             with open(file_name, "xb") as video:
                 print("downloading video...")
-                while data_length > 0:
+                while data_length > 0 and not cancel_event.is_set():
                     data = self.sock.recv(data_length if data_length <= STREAM_RATE else STREAM_RATE)
                     video.write(data)
                     data_length -= len(data)
 
             print("Done downloading ...")
+            ViewController.show_info("ダウンロードが完了しました。")
             download_event.set()
 
         except Exception as e:
@@ -179,14 +180,18 @@ class ViewController:
     @staticmethod
     def display_alert(error_msg):
         messagebox.showerror(title="error",message=error_msg)
+
+    @staticmethod
+    def show_info(msg):
+        messagebox.showinfo(message=msg)
             
-    def display_askyesno_and_cancel_convertion(self,msg,close_event,cancel_thread_event):
+    def display_askyesno_and_cancel_convertion(self,msg,close_event,cancel_event):
         anser = messagebox.askyesno(message=msg)
 
         if anser:
             self.client.tell_server_to_cancel()
             close_event.set()
-            cancel_thread_event.set()
+            cancel_event.set()
 
     def create_main_manu_page(self):
         # rootの構成
@@ -647,32 +652,26 @@ class ViewController:
         mainframe.rowconfigure(0, weight=1)
 
         download_event = threading.Event()
-        request_download_thread  = threading.Thread(target=self.client.tell_server_want_to_download_or_not,args=[download_event,"do"])
+        cancel_event = threading.Event()
+        request_download_thread  = threading.Thread(target=self.client.tell_server_want_to_download_or_not,args=[download_event,"do",cancel_event])
         
         # closeボタンを押した場合、ダウンロードが必要ないことをサーバーに伝える
         download_window.protocol("WM_DELETE_WINDOW",func=lambda:[
             self.client.tell_server_want_to_download_or_not(download_event,"not"),
             download_window.destroy()
         ])
-
-        wait_and_report_to_complete_work_thread = threading.Thread(target=self.wait_and_report_to_complete_work,args=["ダウンロードが完了しました。",download_event])
         
-        cancel_event = threading.Event()
         ttk.Button(mainframe, text="Download",command=lambda:[
             download_window.destroy(),
             request_download_thread.start(),
             self.display_progressbar("ダウンロード中",download_event,cancel_event),
-            wait_and_report_to_complete_work_thread.start()
             ]).grid(column=0, row=0)
 
     def wait_for_destorying_open_window(self, open_window,event):
         event.wait()
         print("destroy open window")
         open_window.destroy()
-    
-    def wait_and_report_to_complete_work(self,message,event):
-        event.wait()
-        messagebox.showinfo(message=message)
+
 
 class Main():
     client = Client()
