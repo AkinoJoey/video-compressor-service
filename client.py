@@ -8,6 +8,7 @@ import json
 import threading
 import re
 import time
+import asyncio
 
 class Client:
     def __init__(self):
@@ -24,25 +25,25 @@ class Client:
             "option_menu":None
         }
         
-    def connect(self,converting_event,connect_event,cancel_event):
+    def connect(self,convertion_event,connection_event,cancel_event):
         try:
             self.sock.connect((self.server_address, self.server_port))
             self.socket_connecting = True
-            connect_event.set()
+            connection_event.set()
             print("client server" + str(self.socket_connecting))
-            self.send_menu_info(converting_event,cancel_event)
+            self.send_menu_info(convertion_event,cancel_event)
             
         except ConnectionRefusedError:
             error_message = "サーバーに接続できません"
             ViewController.display_alert(error_message)
-            converting_event.set()
+            convertion_event.set()
         
         except Exception as e:
             error_message = "Error: " + str(e)
             ViewController.display_alert(error_message)
-            converting_event.set()
+            convertion_event.set()
             
-    def send_menu_info(self,converting_event,cancel_event):
+    def send_menu_info(self,convertion_event,cancel_event):
         print("sending menu info ...")
         json_file = json.dumps(self.menu_info)
         json_file_bytes = json_file.encode("utf-8")
@@ -51,21 +52,21 @@ class Client:
         self.sock.sendall(header)
         self.sock.sendall(json_file_bytes)
 
-        self.wait_for_video_send(converting_event,cancel_event)
+        self.wait_for_sending_video(convertion_event,cancel_event)
     
     def protocol_make_header(self,data_length):
         STREAM_RATE = 4
         return data_length.to_bytes(STREAM_RATE,"big")
 
-    def wait_for_video_send(self,converting_event,cancel_event):
+    def wait_for_sending_video(self,convertion_event,cancel_event):
         message_from_server_length = self.protocol_extract_data_length_from_header()
         message_from_server = self.sock.recv(message_from_server_length).decode("utf-8")
         print(message_from_server)
 
         if message_from_server == "need":
-            self.send_video(converting_event,cancel_event)
+            self.send_video(convertion_event,cancel_event)
         elif message_from_server == "No need":
-            self.wait_to_convert(converting_event)
+            self.wait_to_convert(convertion_event)
         else:
             raise ValueError("error")
         
@@ -73,7 +74,7 @@ class Client:
         STREAM_RATE = 4
         return int.from_bytes(self.sock.recv(STREAM_RATE),"big")
     
-    def send_video(self,converting_event,cancel_event):
+    def send_video(self,convertion_event,cancel_event):
         print("Sending video...")
         print(self.file_path)
         STREAM_RATE = 4096
@@ -90,21 +91,22 @@ class Client:
             while data and not cancel_event.is_set():
                 self.sock.send(data)
                 data = video.read(STREAM_RATE)
-                # print(data)
-            
-        if not cancel_event.is_set():
-            print("Done sending...")
-            self.wait_to_convert(converting_event)
-        else:
-            print("Cancel to convert")
-            converting_event.set()
+                print(data)
         
-    def wait_to_convert(self,converting_event):
+        if cancel_event.is_set():
+            print("Cancel to convert")
+        else:
+            print("Done sending...")
+            self.wait_to_convert(convertion_event)
+        
+    def wait_to_convert(self,convertion_event):
         message_length = self.protocol_extract_data_length_from_header()
         message = self.sock.recv(message_length).decode("utf-8")
 
         if message == "done":
-            converting_event.set()
+            convertion_event.set()
+        elif message == "cancel":
+            pass
     
     def tell_server_to_cancel(self):
         message = "cancel"
@@ -112,20 +114,20 @@ class Client:
         print(message)
         self.sock.sendall(message_bytes)
     
-    def tell_server_want_to_download_or_not(self,close_progressbar_event,do_or_not):
+    def tell_server_want_to_download_or_not(self,download_event,cancel_event,do_or_not):
         message_bytes = do_or_not.encode("utf-8")
         header = self.protocol_make_header(len(message_bytes))
         print(message_bytes)
         if message_bytes == b"do":
             self.sock.sendall(header)
             self.sock.sendall(message_bytes)
-            self.download_video(close_progressbar_event)
+            self.download_video(download_event,cancel_event)
             
         elif message_bytes == b"not":
             self.sock.sendall(header)
             self.sock.sendall(message_bytes)
         
-    def download_video(self,close_progressbar_event):
+    def download_video(self,download_event,cancel_event):
         print(threading.active_count())
         print(threading.current_thread())
 
@@ -139,18 +141,22 @@ class Client:
         try:
             with open(file_name, "xb") as video:
                 print("downloading video...")
-                while data_length > 0 and not close_progressbar_event.is_set():
+                while data_length > 0 and not cancel_event.is_set():
                     data = self.sock.recv(data_length if data_length <= STREAM_RATE else STREAM_RATE)
+                    time.sleep(1)
                     video.write(data)
                     data_length -= len(data)
-
-            print("Done downloading ...")
-            ViewController.show_info("ダウンロードが完了しました。")
-            close_progressbar_event.set()
+            
+            if cancel_event.is_set():
+                print("cancel to download...")
+            else:
+                print("Done downloading ...")
+                ViewController.show_info("ダウンロードが完了しました。")
+                download_event.set()
 
         except Exception as e:
             print("Download error:" + str(e))
-            close_progressbar_event.set()
+            download_event.set()
     
     def get_new_file_extension(self):
         main_menu = self.menu_info["main_menu"]
@@ -188,13 +194,14 @@ class ViewController:
     def show_info(msg):
         messagebox.showinfo(message=msg)
             
-    def display_askyesno_and_cancel_convertion(self,msg,event):
+    def handle_to_cancel(self,msg,main_event,cancel_event):
         anser = messagebox.askyesno(message=msg)
 
         if anser:
             self.client.tell_server_to_cancel()
-            event.set()
-
+            cancel_event.set()
+            main_event.set()
+            
     def create_main_manu_page(self):
         # rootの構成
         # サイズを決める
@@ -382,23 +389,33 @@ class ViewController:
 
     def start_to_convert(self,option_window):
         option_window.destroy()
-        converting_event = threading.Event()
-        connect_event = threading.Event()
+        convertion_event = threading.Event()
         cancel_event = threading.Event()
-        progressbar_window = self.create_progressbar("処理中",cancel_event)
-        
+        cancel_for_callback = self.handle_to_cancel
+        progressbar_window =  self.create_progressbar("test",cancel_event,cancel_for_callback,"変換を中止してよろしいですか？",convertion_event)
+       
         if self.client.socket_connecting:
-            connecting_thread = threading.Thread(target=self.client.send_menu_info,args=[converting_event,cancel_event])
+            connecting_thread = threading.Thread(target=self.client.send_menu_info,args=[convertion_event,cancel_event])
             connecting_thread.start()
-
-            converting_event.wait()
-            self.create_download_window(converting_event)
+            wait_for_convertion_thread = threading.Thread(target=self.wait_for_convertion,args=[progressbar_window,convertion_event,cancel_event])
+            wait_for_convertion_thread.start()
         else:
-            connect_thread = threading.Thread(target=self.client.connect,args=[converting_event,connect_event,cancel_event])
+            connection_event = threading.Event()
+            connect_thread = threading.Thread(target=self.client.connect,args=[convertion_event,connection_event,cancel_event])
             connect_thread.start()
-            converting_event.wait()
-            self.create_download_window(converting_event,connect_event)
+            
+            wait_for_convertion_thread = threading.Thread(target=self.wait_for_convertion,args=[progressbar_window,convertion_event,cancel_event,connection_event])
+            wait_for_convertion_thread.start()
+    
+    def wait_for_convertion(self,window,convertion_event,cancel_event,connection_event=None):
+        if not connection_event is None:
+            connection_event.wait()
         
+        convertion_event.wait()
+        window.destroy()
+        
+        if not cancel_event.is_set():
+            self.create_download_window()
         
     def create_resolution_option_window(self):
         option_window = self.create_new_window("解像度")
@@ -618,7 +635,7 @@ class ViewController:
         option_window.grab_set()
         option_window.focus_set()
 
-    def create_progressbar(self,title,close_progressbar_event):
+    def create_progressbar(self,title,cancel_event,callback_for_canceling,title_when_cancel,main_event):
         prosessing_window = self.create_new_window(title)
 
         mainframe = ttk.Frame(prosessing_window,padding=50)
@@ -631,48 +648,51 @@ class ViewController:
         progressbar.start(10)
         print("display progress bar....")
         
-        if close_progressbar_event: close_progressbar_event.clear()
         # closeボタンを押した時に閉じる
-        prosessing_window.protocol("WM_DELETE_WINDOW",func=lambda:[self.display_askyesno_and_cancel_convertion("本当に終了しますか？",
-                                                                                                               close_progressbar_event)])
-        # convertやdownloadが終わった時に閉じる
-        # destory_progressbar_thread = threading.Thread(target=self.wait_for_destorying_open_window,args=[prosessing_window,close_progressbar_event])
-        # destory_progressbar_thread.start()
-
+        prosessing_window.protocol("WM_DELETE_WINDOW",func=lambda:[callback_for_canceling(title_when_cancel,main_event,cancel_event)])
+                                                                                                               
         return prosessing_window
         
-    def create_download_window(self,close_progressbar_event,connect_event=None):
-        if connect_event:
-            connect_event.wait()
-        
-        close_progressbar_event.wait()
-        
+    def create_download_window(self):       
         download_window = self.create_new_window("処理完了")
         mainframe = ttk.Frame(download_window)
         mainframe.grid(column=0, row=0,sticky=(N, W, E, S))
         mainframe.columnconfigure(0, weight=1)
         mainframe.rowconfigure(0, weight=1)
 
-        close_progressbar_event.clear()
-        request_download_thread  = threading.Thread(target=self.client.tell_server_want_to_download_or_not,args=[close_progressbar_event,"do"])
+        cancel_event = threading.Event()
+        download_event = threading.Event()
+        request_download_thread  = threading.Thread(target=self.client.tell_server_want_to_download_or_not,args=[download_event,cancel_event,"do"])
         
         # closeボタンを押した場合、ダウンロードが必要ないことをサーバーに伝える
         download_window.protocol("WM_DELETE_WINDOW",func=lambda:[
-            self.client.tell_server_want_to_download_or_not(close_progressbar_event,"not"),
-            download_window.destroy()
+            self.check_if_cancel_downloading("ダウンロードを終了しますか？",download_event,cancel_event,download_window)
         ])
         
         ttk.Button(mainframe, text="Download",command=lambda:[
             download_window.destroy(),
             request_download_thread.start(),
-            self.create_progressbar("ダウンロード中",close_progressbar_event),
+            self.start_to_download(cancel_event,download_event)
             ]).grid(column=0, row=0)
 
-    def wait_for_destorying_open_window(self, open_window,event):
-        event.wait()
+    def check_if_cancel_downloading(self,msg,download_event,cancel_event,window):
+        anser = messagebox.askyesno(message=msg)
+        
+        if anser:
+            self.client.tell_server_want_to_download_or_not(download_event,cancel_event,"not")
+            window.destroy()
+        
+    def start_to_download(self,cancel_event,download_event):
+        callback_for_canceling = self.handle_to_cancel
+        progressbar_window = self.create_progressbar("ダウンロード中",cancel_event,callback_for_canceling,"ダウンロードを中止しますか？",download_event)
+        
+        wait_for_downloading_thread = threading.Thread(target=self.wait_for_downloading,args=[progressbar_window,download_event])
+        wait_for_downloading_thread.start()
+        
+    def wait_for_downloading(self,window,downloading_event):
+        downloading_event.wait()
         print("destroy open window")
-        open_window.destroy()
-
+        window.destroy()
 
 class Main():
     client = Client()
