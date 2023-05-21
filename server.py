@@ -5,6 +5,7 @@ import shutil
 import shlex
 import asyncio
 import logging
+import time
 
 class Server:
     def __init__(self):
@@ -231,13 +232,32 @@ class Server:
     async def wait_for_pushing_download(self,file_name):
         message_length = await self.protocol_extract_data_length_from_header()
         message = await self.reader.read(message_length)
-
+        print("message is ; " + str(message.decode("utf-8") == "do"))
+        
         if message.decode("utf-8") == "do":
-            await self.send_converted_video(file_name)
-        elif message.decode("utf-8") == "not":
-            self.delete_video(file_name)
+            cancel_event = asyncio.Event()
+            
+            async with asyncio.TaskGroup() as tg:
+                sending_video_task = tg.create_task(self.send_converted_video(file_name,cancel_event))
+                cancel_task = tg.create_task(self.wait_for_task_to_cancel(sending_video_task,cancel_event))
+            
+            if cancel_event.is_set():
+                print("cancel downloading")
+            else:
+                print("done downloading")
+                
+        # self.delete_video(str(file_name))
+            
+    async def wait_for_task_to_cancel(self,task,cancel_event):
+        print("wait for user to cancel")   
+        cancel_message = "cancel".encode("utf-8")
+        message = await self.reader.read(len(cancel_message))
+        print(message.decode("utf-8"))
+        
+        if message.decode("utf-8") == "cancel":
+            cancel_event.set()
 
-    async def send_converted_video(self,file_name):
+    async def send_converted_video(self,file_name,cancel_event):
         print("Sending video...")
         STREAM_RATE = 4096
         
@@ -252,15 +272,12 @@ class Server:
                 
                 data = video.read(4096)
                 
-                while data:
+                while data and not cancel_event.is_set():
                     print("sending...")
+                    await asyncio.sleep(0.1)
                     self.writer.write(data)
                     await self.writer.drain()
                     data = video.read(4096)
-                
-            print("Done sending...")
-
-            self.delete_video(file_name)
 
         except Exception as e:
             print("Error: " + str(e))
