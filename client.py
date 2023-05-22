@@ -91,7 +91,7 @@ class Client:
             while data and not cancel_event.is_set():
                 self.sock.send(data)
                 data = video.read(STREAM_RATE)
-                print(data)
+                # print(data)
         
         if cancel_event.is_set():
             print("Cancel to convert")
@@ -143,12 +143,13 @@ class Client:
                 print("downloading video...")
                 while data_length > 0 and not cancel_event.is_set():
                     data = self.sock.recv(data_length if data_length <= STREAM_RATE else STREAM_RATE)
-                    time.sleep(1)
+                    # time.sleep(1)
                     video.write(data)
                     data_length -= len(data)
             
             if cancel_event.is_set():
                 print("cancel to download...")
+                
             else:
                 print("Done downloading ...")
                 ViewController.show_info("ダウンロードが完了しました。")
@@ -392,7 +393,7 @@ class ViewController:
         convertion_event = threading.Event()
         cancel_event = threading.Event()
         cancel_for_callback = self.handle_to_cancel
-        progressbar_window =  self.create_progressbar("test",cancel_event,cancel_for_callback,"変換を中止してよろしいですか？",convertion_event)
+        progressbar_window =  self.create_progressbar("変換中",cancel_event,cancel_for_callback,"変換を中止してよろしいですか？",convertion_event)
        
         if self.client.socket_connecting:
             connecting_thread = threading.Thread(target=self.client.send_menu_info,args=[convertion_event,cancel_event])
