@@ -25,25 +25,25 @@ class Client:
             "option_menu":None
         }
         
-    def connect(self,convertion_event,connection_event,cancel_event):
+    def connect(self,conversion_event,connection_event,cancel_event):
         try:
             self.sock.connect((self.server_address, self.server_port))
             self.socket_connecting = True
             connection_event.set()
             print("client server" + str(self.socket_connecting))
-            self.send_menu_info(convertion_event,cancel_event)
+            self.send_menu_info(conversion_event,cancel_event)
             
         except ConnectionRefusedError:
             error_message = "サーバーに接続できません"
             ViewController.display_alert(error_message)
-            convertion_event.set()
+            conversion_event.set()
         
         except Exception as e:
             error_message = "Error: " + str(e)
             ViewController.display_alert(error_message)
-            convertion_event.set()
+            conversion_event.set()
             
-    def send_menu_info(self,convertion_event,cancel_event):
+    def send_menu_info(self,conversion_event,cancel_event):
         print("sending menu info ...")
         json_file = json.dumps(self.menu_info)
         json_file_bytes = json_file.encode("utf-8")
@@ -52,21 +52,21 @@ class Client:
         self.sock.sendall(header)
         self.sock.sendall(json_file_bytes)
 
-        self.wait_for_sending_video(convertion_event,cancel_event)
+        self.wait_for_sending_video(conversion_event,cancel_event)
     
     def protocol_make_header(self,data_length):
         STREAM_RATE = 4
         return data_length.to_bytes(STREAM_RATE,"big")
 
-    def wait_for_sending_video(self,convertion_event,cancel_event):
+    def wait_for_sending_video(self,conversion_event,cancel_event):
         message_from_server_length = self.protocol_extract_data_length_from_header()
         message_from_server = self.sock.recv(message_from_server_length).decode("utf-8")
         print(message_from_server)
 
         if message_from_server == "need":
-            self.send_video(convertion_event,cancel_event)
+            self.send_video(conversion_event,cancel_event)
         elif message_from_server == "No need":
-            self.wait_to_convert(convertion_event)
+            self.wait_to_convert(conversion_event)
         else:
             raise ValueError("error")
         
@@ -74,7 +74,7 @@ class Client:
         STREAM_RATE = 4
         return int.from_bytes(self.sock.recv(STREAM_RATE),"big")
     
-    def send_video(self,convertion_event,cancel_event):
+    def send_video(self,conversion_event,cancel_event):
         print("Sending video...")
         print(self.file_path)
         STREAM_RATE = 4096
@@ -97,14 +97,14 @@ class Client:
             print("Cancel to convert")
         else:
             print("Done sending...")
-            self.wait_to_convert(convertion_event)
+            self.wait_to_convert(conversion_event)
         
-    def wait_to_convert(self,convertion_event):
+    def wait_to_convert(self,conversion_event):
         message_length = self.protocol_extract_data_length_from_header()
         message = self.sock.recv(message_length).decode("utf-8")
 
         if message == "done":
-            convertion_event.set()
+            conversion_event.set()
         elif message == "cancel":
             pass
     
@@ -196,14 +196,14 @@ class ViewController:
         messagebox.showinfo(message=msg)
             
     def handle_to_cancel(self,msg,main_event,cancel_event):
-        anser = messagebox.askyesno(message=msg)
+        answer = messagebox.askyesno(message=msg)
 
-        if anser:
+        if answer:
             self.client.tell_server_to_cancel()
             cancel_event.set()
             main_event.set()
             
-    def create_main_manu_page(self):
+    def create_main_menu_page(self):
         # rootの構成
         # サイズを決める
         self.root.geometry("620x220")
@@ -313,19 +313,19 @@ class ViewController:
         self.set_file_extension_dict(file_extension)
         self.display_file_name(file_name_with_extension)
         
-    def confirm_selected_video(self,selected_main_manu):
+    def confirm_selected_video(self,selected_main_menu):
         if self.file_name_for_display.get() == "":
             ViewController.display_alert("ファイルを選択してください")
         else:
-            if selected_main_manu == "compress":
+            if selected_main_menu == "compress":
                 self.create_compress_option_window()
-            elif selected_main_manu == "resolution":
+            elif selected_main_menu == "resolution":
                 self.create_resolution_option_window()
-            elif selected_main_manu == "aspect":
+            elif selected_main_menu == "aspect":
                 self.create_aspect_option_window()
-            elif selected_main_manu == "audio":
+            elif selected_main_menu == "audio":
                 self.create_audio_option_window()
-            elif selected_main_manu == "gif":
+            elif selected_main_menu == "gif":
                 self.create_gif_option_window()
     
     def set_main_menu_dict(self, main_menu):
@@ -371,7 +371,7 @@ class ViewController:
             self.start_to_convert(option_window)
             ]).grid(column=0, row=3)
 
-        # main manuの操作ができないように設定して、フォーカスを新しいウィンドウに移す
+        # main menuの操作ができないように設定して、フォーカスを新しいウィンドウに移す
         option_window.grab_set()
         option_window.focus_set()
     
@@ -390,29 +390,29 @@ class ViewController:
 
     def start_to_convert(self,option_window):
         option_window.destroy()
-        convertion_event = threading.Event()
+        conversion_event = threading.Event()
         cancel_event = threading.Event()
         cancel_for_callback = self.handle_to_cancel
-        progressbar_window =  self.create_progressbar("変換中",cancel_event,cancel_for_callback,"変換を中止してよろしいですか？",convertion_event)
+        progressbar_window =  self.create_progressbar("変換中",cancel_event,cancel_for_callback,"変換を中止してよろしいですか？",conversion_event)
        
         if self.client.socket_connecting:
-            connecting_thread = threading.Thread(target=self.client.send_menu_info,args=[convertion_event,cancel_event])
+            connecting_thread = threading.Thread(target=self.client.send_menu_info,args=[conversion_event,cancel_event])
             connecting_thread.start()
-            wait_for_convertion_thread = threading.Thread(target=self.wait_for_convertion,args=[progressbar_window,convertion_event,cancel_event])
-            wait_for_convertion_thread.start()
+            wait_for_conversion_thread = threading.Thread(target=self.wait_for_conversion,args=[progressbar_window,conversion_event,cancel_event])
+            wait_for_conversion_thread.start()
         else:
             connection_event = threading.Event()
-            connect_thread = threading.Thread(target=self.client.connect,args=[convertion_event,connection_event,cancel_event])
+            connect_thread = threading.Thread(target=self.client.connect,args=[conversion_event,connection_event,cancel_event])
             connect_thread.start()
             
-            wait_for_convertion_thread = threading.Thread(target=self.wait_for_convertion,args=[progressbar_window,convertion_event,cancel_event,connection_event])
-            wait_for_convertion_thread.start()
+            wait_for_conversion_thread = threading.Thread(target=self.wait_for_conversion,args=[progressbar_window,conversion_event,cancel_event,connection_event])
+            wait_for_conversion_thread.start()
     
-    def wait_for_convertion(self,window,convertion_event,cancel_event,connection_event=None):
+    def wait_for_conversion(self,window,conversion_event,cancel_event,connection_event=None):
         if not connection_event is None:
             connection_event.wait()
         
-        convertion_event.wait()
+        conversion_event.wait()
         window.destroy()
         
         if not cancel_event.is_set():
@@ -534,8 +534,8 @@ class ViewController:
         height_entry = ttk.Entry(mainframe,textvariable=height,width=6,state="normal",justify=CENTER,validate='key',validatecommand=check_num_wrapper)
         height_entry.grid(column=2,row=0,sticky=(W,S))
 
-        coron = ttk.Label(mainframe, text= ":")
-        coron.grid(column=1,row=0,sticky=S)
+        colon = ttk.Label(mainframe, text= ":")
+        colon.grid(column=1,row=0,sticky=S)
         
         ttk.Button(mainframe, text="start",cursor='hand2',command=lambda:[
             self.check_not_blank(width.get(),height.get(),option_menu={"width": width.get(),"height": height.get()},option_window=option_window)
@@ -637,9 +637,9 @@ class ViewController:
         option_window.focus_set()
 
     def create_progressbar(self,title,cancel_event,callback_for_canceling,title_when_cancel,main_event):
-        prosessing_window = self.create_new_window(title)
+        processing_window = self.create_new_window(title)
 
-        mainframe = ttk.Frame(prosessing_window,padding=50)
+        mainframe = ttk.Frame(processing_window,padding=50)
         mainframe.grid(column=0, row=0,sticky=(N, W, E, S))
         mainframe.columnconfigure(0, weight=1)
         mainframe.rowconfigure(0, weight=1)
@@ -650,9 +650,9 @@ class ViewController:
         print("display progress bar....")
         
         # closeボタンを押した時に閉じる
-        prosessing_window.protocol("WM_DELETE_WINDOW",func=lambda:[callback_for_canceling(title_when_cancel,main_event,cancel_event)])
+        processing_window.protocol("WM_DELETE_WINDOW",func=lambda:[callback_for_canceling(title_when_cancel,main_event,cancel_event)])
                                                                                                                
-        return prosessing_window
+        return processing_window
         
     def create_download_window(self):       
         download_window = self.create_new_window("処理完了")
@@ -677,9 +677,9 @@ class ViewController:
             ]).grid(column=0, row=0)
 
     def check_if_cancel_downloading(self,msg,download_event,cancel_event,window):
-        anser = messagebox.askyesno(message=msg)
+        answer = messagebox.askyesno(message=msg)
         
-        if anser:
+        if answer:
             self.client.tell_server_want_to_download_or_not(download_event,cancel_event,"not")
             window.destroy()
         
@@ -698,7 +698,7 @@ class ViewController:
 class Main():
     client = Client()
     view_con = ViewController(client)
-    view_con.create_main_manu_page()
+    view_con.create_main_menu_page()
 
     
 if __name__ == "__main__":
