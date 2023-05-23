@@ -11,23 +11,23 @@ class Server:
     def __init__(self):
         self.server_address = "127.0.0.1"
         self.server_port = 9999
-        self.temp_strage_dir_path = "./temp-strage-dir/"
+        self.temp_storage_dir_path = "./temp-storage-dir/"
         self.reader = None
         self.writer = None
     
-    def check_and_mkdir_for_strage_dir_path(self):
-        if not os.path.exists(self.temp_strage_dir_path):
-            os.mkdir(self.temp_strage_dir_path)
+    def check_and_mkdir_for_storage_dir_path(self):
+        if not os.path.exists(self.temp_storage_dir_path):
+            os.mkdir(self.temp_storage_dir_path)
     
     async def create_server(self):
-        server = await asyncio.start_server(self.accpet, self.server_address,self.server_port)
-        addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
-        print(f'Serving on {addrs}')
+        server = await asyncio.start_server(self.accept, self.server_address,self.server_port)
+        addr = ', '.join(str(sock.getsockname()) for sock in server.sockets)
+        print(f'Serving on {addr}')
 
         async with server:
             await server.serve_forever()
             
-    async def accpet(self,reader,writer):
+    async def accept(self,reader,writer):
         print("socket created")
         self.reader = reader
         self.writer = writer
@@ -43,7 +43,7 @@ class Server:
 
         finally:
             self.sock.close()
-            shutil.rmtree(self.temp_strage_dir_path)
+            shutil.rmtree(self.temp_storage_dir_path)
             
     async def receive_menu_info(self):
         json_length = await self.protocol_extract_data_length_from_header()
@@ -58,7 +58,7 @@ class Server:
         
     async def check_video_exists(self,menu_info):
         file_name_without_whitespace = "".join(menu_info["file_name"].split())
-        file_name = self.temp_strage_dir_path + file_name_without_whitespace + menu_info["file_extension"]
+        file_name = self.temp_storage_dir_path + file_name_without_whitespace + menu_info["file_extension"]
 
         if os.path.exists(file_name):
             await self.replay_to_client("No need")
@@ -111,7 +111,7 @@ class Server:
             pass        
 
     async def handle_convert_video(self,menu_info,original_file_name):
-        output_file_name = self.temp_strage_dir_path + self.create_output_file_name(menu_info)
+        output_file_name = self.temp_storage_dir_path + self.create_output_file_name(menu_info)
         main_menu = menu_info["main_menu"]
         
         if main_menu == "compress":
@@ -130,15 +130,15 @@ class Server:
         main_menu = menu_info["main_menu"]
         
         if main_menu == "audio":
-            file_extenstion = ".mp3"
+            file_extension = ".mp3"
         elif main_menu == "gif":
-            file_extenstion = ".gif"
+            file_extension = ".gif"
         elif main_menu == "webm":
-            file_extenstion = ".webm"
+            file_extension = ".webm"
         else:
-            file_extenstion = menu_info["file_extension"]
+            file_extension = menu_info["file_extension"]
         
-        return f"{original_file_name}-{main_menu}{file_extenstion}"
+        return f"{original_file_name}-{main_menu}{file_extension}"
     
     async def compress_video(self,original_file_name,menu_info,output_file_name):
         option_menu = menu_info["option_menu"]
@@ -318,7 +318,7 @@ class Main():
     PYTHONASYNCIODEBUG = 1
     logging.basicConfig(level=logging.DEBUG)
     server = Server()
-    server.check_and_mkdir_for_strage_dir_path()
+    server.check_and_mkdir_for_storage_dir_path()
     asyncio.run(server.create_server())
 
 if __name__ == "__main__":
