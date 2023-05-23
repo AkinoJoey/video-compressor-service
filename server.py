@@ -159,29 +159,39 @@ class Server:
 
     async def start_to_convert(self,ffmpeg_command,file_name):
         convert_process = subprocess.Popen(shlex.split(ffmpeg_command),stdin=subprocess.PIPE)
-        cancel_task = asyncio.ensure_future(self.wait_for_process_to_cancel(convert_process))
-        monitor_process = asyncio.ensure_future(self.monitor_process(convert_process,cancel_task))
-        await asyncio.wait([cancel_task,monitor_process],return_when=asyncio.FIRST_COMPLETED)
+        monitor_process = await self.monitor_process(convert_process)
         
-        if cancel_task.cancelled():
+        if monitor_process:
             await self.report_to_end_converting(file_name,"done")
         else:
             await self.report_to_end_converting(file_name,"cancel")
 
     async def wait_for_process_to_cancel(self,convert_process):
-            print("wait for user to cancel")   
+        print("wait for user to cancel")
+        try:
             cancel_message = "cancel".encode("utf-8")
             message = await self.reader.read(len(cancel_message))
             print(message.decode("utf-8"))
             
             if message.decode("utf-8") == "cancel":
                 convert_process.communicate(str.encode("q"))
-                        
-    async def monitor_process(self,process,cancel_task):
+                return True
+            
+        except asyncio.CancelledError:
+            pass
+
+    async def monitor_process(self,process):
+        print("monitor process.....")
         while process.poll() is None:
-           await asyncio.sleep(0.1)
-        
-        cancel_task.cancel()
+            try:
+                cancel_task = await asyncio.wait_for(self.wait_for_process_to_cancel(process),timeout=0.001)
+                if cancel_task:
+                    return False
+            except TimeoutError:
+                pass
+
+        print("process終了")
+        return True
 
     async def change_video_resolution(self,original_file_name,menu_info,output_file_name):
         width = menu_info["option_menu"]["width"]
@@ -236,43 +246,32 @@ class Server:
         print("message is ; " + str(message.decode("utf-8") == "do"))
         
         if message.decode("utf-8") == "do":
-            cancel_event = asyncio.Event()
-            
-            # async with asyncio.TaskGroup() as tg:
-            #     sending_video_task = tg.create_task(self.send_converted_video(file_name,cancel_event))
-            #     cancel_task = tg.create_task(self.wait_for_task_to_cancel(sending_video_task,cancel_event))
-            
-            sending_video_task = asyncio.ensure_future(self.send_converted_video(file_name,cancel_event))
-            cancel_task = asyncio.ensure_future(self.wait_for_task_to_cancel(sending_video_task,cancel_event))
-            done, pending = await asyncio.wait([sending_video_task,cancel_task],return_when=asyncio.FIRST_COMPLETED)
-            print(done)
-            print(pending)
-
+            async with asyncio.TaskGroup() as tg:
+                sending_video_task = tg.create_task(self.send_converted_video(file_name))
+                monitor_task = tg.create_task(self.monitor_task(sending_video_task))
+           
             if sending_video_task.cancelled():
                 print("cancel downloading")
             else:
                 print("done downloading")
-                cancel_task.cancel()
-                print(cancel_task.cancelled())
-                
+
         # self.delete_video(str(file_name))
             
-    async def wait_for_task_to_cancel(self,task,cancel_event):
+    async def wait_for_task_to_cancel(self,task):
         print("wait for user to cancel")   
-
         try:
             cancel_message = "cancel".encode("utf-8")
             message = await self.reader.read(len(cancel_message))
             print(message.decode("utf-8"))
-            
+        
             if message.decode("utf-8") == "cancel":
-                # cancel_event.set()
                 task.cancel()
+                return True
+            
         except asyncio.CancelledError:
-            print("キャンセル待ちがキャンセルされたよー")
+            pass
 
-
-    async def send_converted_video(self,file_name,cancel_event):
+    async def send_converted_video(self,file_name):
         print("Sending video...")
         STREAM_RATE = 4096
         
@@ -294,18 +293,22 @@ class Server:
                     await self.writer.drain()
                     data = video.read(4096)
 
-                # if cancel_event.is_set():
-                #     print("キャンセルしたよー")
-                # else:
-                #     print("ビデオ送ったよー")
-
-                print("最後まできてるかテストだよー")
-
         except asyncio.CancelledError:
-            print("キャンセルしたよー")
+            print("cancel sending video")
 
         except Exception as e:
             print("Error: " + str(e))
+
+    async def monitor_task(self,monitoring_task):
+        while not monitoring_task.done():
+            try:
+                cancel_task = await asyncio.wait_for(self.wait_for_task_to_cancel(monitoring_task),timeout=0.001)
+                if cancel_task:
+                    return False
+            except TimeoutError:
+                pass
+        
+        return True
 
     def delete_video(self,file_name):
         os.remove(file_name)
