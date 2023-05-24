@@ -28,7 +28,6 @@ class Client:
             self.sock.connect((self.server_address, self.server_port))
             self.socket_connecting = True
             connection_event.set()
-            print("client server" + str(self.socket_connecting))
             self.send_menu_info(conversion_event,cancel_event)
             
         except ConnectionRefusedError:
@@ -43,40 +42,45 @@ class Client:
             
     def send_menu_info(self,conversion_event,cancel_event):
         print("sending menu info ...")
-        json_file = json.dumps(self.menu_info)
-        json_file_bytes = json_file.encode("utf-8")
-
-        header = self.protocol_make_header(len(json_file_bytes))
-        self.sock.sendall(header)
-        self.sock.sendall(json_file_bytes)
+        json_string = json.dumps(self.menu_info)
+        self.sender(json_string)
 
         self.wait_for_sending_video(conversion_event,cancel_event)
+    
+    def sender(self,message):
+        message_bytes = message.encode("utf-8")
+        header = self.protocol_make_header(len(message_bytes))
+        self.sock.sendall(header)
+        self.sock.sendall(message_bytes)
     
     def protocol_make_header(self,data_length):
         STREAM_RATE = 4
         return data_length.to_bytes(STREAM_RATE,"big")
+    
+    def receiver(self):
+        data_length = self.protocol_extract_data_length_from_header()
+        data = self.sock.recv(data_length)
+        
+        return data.decode("utf-8")
+    
+    def protocol_extract_data_length_from_header(self):
+        STREAM_RATE = 4
+        return int.from_bytes(self.sock.recv(STREAM_RATE),"big")
 
     def wait_for_sending_video(self,conversion_event,cancel_event):
-        message_from_server_length = self.protocol_extract_data_length_from_header()
-        message_from_server = self.sock.recv(message_from_server_length).decode("utf-8")
-        print(message_from_server)
+        message_from_server = self.receiver()
 
         if message_from_server == "need":
             self.send_video(conversion_event,cancel_event)
-        elif message_from_server == "No need":
+        elif message_from_server == "NO need":
             self.wait_to_convert(conversion_event,cancel_event)
         else:
             ViewController.display_alert("エラーが発生しました")
             conversion_event.set()
             cancel_event.set()
-        
-    def protocol_extract_data_length_from_header(self):
-        STREAM_RATE = 4
-        return int.from_bytes(self.sock.recv(STREAM_RATE),"big")
     
     def send_video(self,conversion_event,cancel_event):
         print("Sending video...")
-        print(self.file_path)
         STREAM_RATE = 4096
         
         with open(self.file_path, "rb") as video:
@@ -91,7 +95,6 @@ class Client:
             while data and not cancel_event.is_set():
                 self.sock.send(data)
                 data = video.read(STREAM_RATE)
-                # print(data)
         
         if cancel_event.is_set():
             print("Cancel to convert")
@@ -100,8 +103,7 @@ class Client:
             self.wait_to_convert(conversion_event,cancel_event)
         
     def wait_to_convert(self,conversion_event,cancel_event):
-        message_length = self.protocol_extract_data_length_from_header()
-        message = self.sock.recv(message_length).decode("utf-8")
+        message = self.receiver()
 
         if message == "done":
             conversion_event.set()
@@ -112,29 +114,13 @@ class Client:
             cancel_event.set()
             ViewController.display_alert("エラーが発生しました")
     
-    def tell_server_to_cancel(self):
-        message = "cancel"
-        message_bytes = message.encode("utf-8")
-        print(message)
-        self.sock.sendall(message_bytes)
-    
     def tell_server_want_to_download_or_not(self,download_event,cancel_event,do_or_not):
-        message_bytes = do_or_not.encode("utf-8")
-        header = self.protocol_make_header(len(message_bytes))
-        print(message_bytes)
-        if message_bytes == b"do":
-            self.sock.sendall(header)
-            self.sock.sendall(message_bytes)
-            self.download_video(download_event,cancel_event)
-            
-        elif message_bytes == b"not":
-            self.sock.sendall(header)
-            self.sock.sendall(message_bytes)
+        self.sender(do_or_not)
         
-    def download_video(self,download_event,cancel_event):
-        print(threading.active_count())
-        print(threading.current_thread())
+        if do_or_not == "do":
+            self.download_video(download_event,cancel_event)
 
+    def download_video(self,download_event,cancel_event):
         STREAM_RATE = 4096
         data_length = self.protocol_extract_data_length_from_header()
         download_dir_path = os.path.join(os.getenv('USERPROFILE'), 'Downloads') if os.name  == "nt" else os.path.expanduser('~/Downloads')
@@ -147,7 +133,6 @@ class Client:
                 print("downloading video...")
                 while data_length > 0 and not cancel_event.is_set():
                     data = self.sock.recv(data_length if data_length <= STREAM_RATE else STREAM_RATE)
-                    # time.sleep(1)
                     video.write(data)
                     data_length -= len(data)
             
@@ -186,10 +171,7 @@ class Client:
         return file_name
     
     def tell_server_to_end_app(self):
-        msg_bytes = "end app".encode("utf-8")
-        header = self.protocol_make_header(len(msg_bytes))
-        self.sock.sendall(header)
-        self.sock.sendall(msg_bytes)
+        self.sender("end app")
         self.sock.close()
                 
 class ViewController:
@@ -197,7 +179,6 @@ class ViewController:
         self.root = Tk()
         self.client = client
         self.file_name_for_display = StringVar()
-
         self.root.protocol("WM_DELETE_WINDOW",self.end_app)
 
     def end_app(self):
@@ -214,14 +195,6 @@ class ViewController:
     @staticmethod
     def show_info(msg):
         messagebox.showinfo(message=msg)
-            
-    def handle_to_cancel(self,msg,main_event,cancel_event):
-        answer = messagebox.askyesno(message=msg)
-
-        if answer:
-            self.client.tell_server_to_cancel()
-            cancel_event.set()
-            main_event.set()
             
     def create_main_menu_page(self):
         # rootの構成
@@ -431,6 +404,14 @@ class ViewController:
             
             wait_for_conversion_thread = threading.Thread(target=self.wait_for_conversion,args=[progressbar_window,conversion_event,cancel_event,connection_event])
             wait_for_conversion_thread.start()
+    
+    def handle_to_cancel(self,msg,main_event,cancel_event):
+        answer = messagebox.askyesno(message=msg)
+
+        if answer:
+            self.client.sender("cancel")
+            cancel_event.set()
+            main_event.set()
     
     def wait_for_conversion(self,window,conversion_event,cancel_event,connection_event=None):
         if not connection_event is None:
