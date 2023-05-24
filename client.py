@@ -313,7 +313,9 @@ class ViewController:
         gif_webm_frame = ttk.Label(lower_half_frame)
         gif_webm_frame.grid(column=2, row=1)
         ttk.Button(gif_webm_frame, text="To WEBM",cursor='hand2',command=lambda:[
-            self.test()]).grid(column=0, row=0)
+            self.confirm_selected_video("webm"),
+            self.set_main_menu_dict("webm")
+            ]).grid(column=0, row=0)
 
         self.root.mainloop()
     
@@ -346,7 +348,9 @@ class ViewController:
             elif selected_main_menu == "audio":
                 self.create_audio_option_window()
             elif selected_main_menu == "gif":
-                self.create_gif_option_window()
+                self.create_gif_webm_option_window()
+            elif selected_main_menu == "webm":
+                self.create_gif_webm_option_window()
     
     def set_main_menu_dict(self, main_menu):
         self.client.menu_info["main_menu"] = main_menu
@@ -580,7 +584,7 @@ class ViewController:
         option_window.grab_set()
         option_window.focus_set()
 
-    def create_gif_option_window(self):
+    def create_gif_webm_option_window(self):
         option_window = self.create_new_window("時間範囲を指定")
 
         mainframe = ttk.Frame(option_window)
