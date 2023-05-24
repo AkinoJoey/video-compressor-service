@@ -11,7 +11,6 @@ class Server:
         self.server_address = "127.0.0.1"
         self.server_port = 9999
         self.temp_storage_dir_path = "./temp-storage-dir/"
-        self.original_file_name = None
         self.reader = None
         self.writer = None
     
@@ -45,7 +44,8 @@ class Server:
             print("Error" + str(e))
 
         finally:
-            self.delete_video(self.original_file_name)
+            shutil.rmtree(self.temp_storage_dir_path)
+            os.mkdir(self.temp_storage_dir_path)
     
     async def receive_first_data(self):
         data_length = await self.protocol_extract_data_length_from_header()
@@ -66,7 +66,6 @@ class Server:
     async def check_video_exists(self,menu_info):
         file_name_without_whitespace = "".join(menu_info["file_name"].split())
         file_name = self.temp_storage_dir_path + file_name_without_whitespace + menu_info["file_extension"]
-        self.original_file_name = file_name
 
         if os.path.exists(file_name):
             await self.replay_to_client("No need")
