@@ -7,8 +7,6 @@ import os
 import json
 import threading
 import re
-import time
-import asyncio
 
 class Client:
     def __init__(self):
@@ -68,7 +66,9 @@ class Client:
         elif message_from_server == "No need":
             self.wait_to_convert(conversion_event,cancel_event)
         else:
-            raise ValueError("error")
+            ViewController.display_alert("エラーが発生しました")
+            conversion_event.set()
+            cancel_event.set()
         
     def protocol_extract_data_length_from_header(self):
         STREAM_RATE = 4
