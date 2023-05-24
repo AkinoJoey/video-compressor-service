@@ -107,7 +107,6 @@ class Server:
                     data = await self.reader.read(data_length if data_length <= STREAM_RATE else STREAM_RATE)
                     video.write(data)
                     data_length -= len(data)
-                    # print(data_length)
 
                     if data == b"cancel":
                         print(data)
@@ -131,6 +130,8 @@ class Server:
             await self.video_to_mp3(original_file_name,output_file_name)
         elif main_menu == "gif":
             await self.video_to_gif(original_file_name,menu_info,output_file_name)
+        elif main_menu == "webm":
+            await self.video_to_webm(original_file_name,menu_info,output_file_name)
         
     def create_output_file_name(self,menu_info):
         original_file_name = "".join(menu_info["file_name"].split())
@@ -239,6 +240,16 @@ class Server:
         convert_to_gif = f"ffmpeg -ss {start_time} -y -i {original_file_name} -t {end_time} -r 5 {output_file_name}"
 
         await self.start_to_convert(convert_to_gif,output_file_name)
+
+    async def video_to_webm(self,original_file_name,menu_info,output_file_name):
+        start_time = menu_info["option_menu"]["start"]
+        end_time = menu_info["option_menu"]["end"]
+
+        print("start to convert the video")
+
+        convert_to_webm = f"ffmpeg -ss {start_time} -y -i {original_file_name} -t {end_time} {output_file_name}"
+
+        await self.start_to_convert(convert_to_webm,output_file_name)
     
     async def report_to_end_converting(self,file_name,message):
         header = self.protocol_make_header(len(message))
