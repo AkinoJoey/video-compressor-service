@@ -184,13 +184,29 @@ class Client:
                 number_for_file_name_overwrite += 1
                 
         return file_name
+    
+    def tell_server_to_end_app(self):
+        msg_bytes = "end app".encode("utf-8")
+        header = self.protocol_make_header(len(msg_bytes))
+        self.sock.sendall(header)
+        self.sock.sendall(msg_bytes)
+        self.sock.close()
                 
 class ViewController:
     def __init__(self,client):
         self.root = Tk()
         self.client = client
         self.file_name_for_display = StringVar()
-    
+
+        self.root.protocol("WM_DELETE_WINDOW",self.end_app)
+
+    def end_app(self):
+        if self.client.socket_connecting:
+            self.client.tell_server_to_end_app()
+            self.root.destroy()
+        else:
+            self.root.destroy()
+
     @staticmethod
     def display_alert(error_msg):
         messagebox.showerror(title="error",message=error_msg)
