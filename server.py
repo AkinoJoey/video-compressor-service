@@ -5,13 +5,13 @@ import shutil
 import shlex
 import asyncio
 import logging
-import time
 
 class Server:
     def __init__(self):
         self.server_address = "127.0.0.1"
         self.server_port = 9999
         self.temp_storage_dir_path = "./temp-storage-dir/"
+        self.original_file_name = None
         self.reader = None
         self.writer = None
     
@@ -22,35 +22,42 @@ class Server:
     async def create_server(self):
         server = await asyncio.start_server(self.accept, self.server_address,self.server_port)
         addr = ', '.join(str(sock.getsockname()) for sock in server.sockets)
+        print(server.sockets)
         print(f'Serving on {addr}')
 
         async with server:
             await server.serve_forever()
             
     async def accept(self,reader,writer):
-        print("socket created")
         self.reader = reader
         self.writer = writer
         
         try:
             while True:
-                print("return True")
-                menu_info =  await self.receive_menu_info()
-                await self.check_video_exists(menu_info)
+                print("first move")
+                data = await self.receive_first_data()
+                if data == b"end app":
+                    break
+                else:
+                    await self.receive_menu_info(data)
         
         except Exception as e:
             print("Error" + str(e))
 
         finally:
-            self.sock.close()
-            shutil.rmtree(self.temp_storage_dir_path)
+            self.delete_video(self.original_file_name)
+    
+    async def receive_first_data(self):
+        data_length = await self.protocol_extract_data_length_from_header()
+        data = await self.reader.read(data_length)
+
+        return data
             
-    async def receive_menu_info(self):
-        json_length = await self.protocol_extract_data_length_from_header()
-        json_data = json.loads(await self.reader.read(json_length))
+    async def receive_menu_info(self,data):
+        json_data = json.loads(data)
         
         print(json_data)
-        return json_data
+        await self.check_video_exists(json_data)
     
     async def protocol_extract_data_length_from_header(self):
         STREAM_RATE = 4
@@ -59,6 +66,7 @@ class Server:
     async def check_video_exists(self,menu_info):
         file_name_without_whitespace = "".join(menu_info["file_name"].split())
         file_name = self.temp_storage_dir_path + file_name_without_whitespace + menu_info["file_extension"]
+        self.original_file_name = file_name
 
         if os.path.exists(file_name):
             await self.replay_to_client("No need")
@@ -168,6 +176,7 @@ class Server:
                 await self.report_to_end_converting(file_name,"error")
         else:
             await self.report_to_end_converting(file_name,"cancel")
+            self.delete_video(file_name)
 
     async def wait_for_process_to_cancel(self,convert_process):
         try:
@@ -256,8 +265,7 @@ class Server:
                 print("cancel downloading")
             else:
                 print("done downloading")
-
-        # self.delete_video(str(file_name))
+                self.delete_video(file_name)
             
     async def wait_for_task_to_cancel(self,task):
         try:
