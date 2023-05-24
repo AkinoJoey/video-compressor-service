@@ -66,7 +66,7 @@ class Client:
         if message_from_server == "need":
             self.send_video(conversion_event,cancel_event)
         elif message_from_server == "No need":
-            self.wait_to_convert(conversion_event)
+            self.wait_to_convert(conversion_event,cancel_event)
         else:
             raise ValueError("error")
         
@@ -97,9 +97,9 @@ class Client:
             print("Cancel to convert")
         else:
             print("Done sending...")
-            self.wait_to_convert(conversion_event)
+            self.wait_to_convert(conversion_event,cancel_event)
         
-    def wait_to_convert(self,conversion_event):
+    def wait_to_convert(self,conversion_event,cancel_event):
         message_length = self.protocol_extract_data_length_from_header()
         message = self.sock.recv(message_length).decode("utf-8")
 
@@ -107,6 +107,10 @@ class Client:
             conversion_event.set()
         elif message == "cancel":
             pass
+        elif message == "error":
+            conversion_event.set()
+            cancel_event.set()
+            ViewController.display_alert("エラーが発生しました")
     
     def tell_server_to_cancel(self):
         message = "cancel"
