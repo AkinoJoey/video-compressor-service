@@ -162,12 +162,14 @@ class Server:
         monitor_process = await self.monitor_process(convert_process)
         
         if monitor_process:
-            await self.report_to_end_converting(file_name,"done")
+            if os.path.exists(file_name):
+                await self.report_to_end_converting(file_name,"done")
+            else:
+                await self.report_to_end_converting(file_name,"error")
         else:
             await self.report_to_end_converting(file_name,"cancel")
 
     async def wait_for_process_to_cancel(self,convert_process):
-        print("wait for user to cancel")
         try:
             cancel_message = "cancel".encode("utf-8")
             message = await self.reader.read(len(cancel_message))
@@ -258,7 +260,6 @@ class Server:
         # self.delete_video(str(file_name))
             
     async def wait_for_task_to_cancel(self,task):
-        print("wait for user to cancel")   
         try:
             cancel_message = "cancel".encode("utf-8")
             message = await self.reader.read(len(cancel_message))
