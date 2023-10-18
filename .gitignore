@@ -208,7 +208,7 @@ pyrightconfig.json
 
 ### VisualStudioCode ###
 .vscode/*
-!.vscode/settings.json
+.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
@@ -227,6 +227,5 @@ pyrightconfig.json
 
 ## for test
 test.mp4
-
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,macos,python
