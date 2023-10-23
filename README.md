@@ -1,8 +1,7 @@
 # Video Compressor Service
 ユーザーが動画をサーバーにアップロードして、選択したオプションに応じて動画を変換できるクライアントサーバ分散型アプリケーションです。
-<p align="center">
-  <img src="https://github.com/AkinoJoey/video-compressor-service/assets/124570638/0cb78dc1-52d3-4f24-b72a-672c69ce78ed" />
-</p>
+## Demo
+![demo](https://github.com/AkinoJoey/video-compressor-service/assets/124570638/3bbbe40f-04ba-40b9-9aa2-0944ddc0754c)
 
 ## 概要
 
@@ -49,9 +48,6 @@
 ### Serverクラスの細分化
 Serverクラスではサーバーの起動やクライアントとの接続処理以外にも、動画処理も担当しています。<br>
 単一責任の原則に従って設計をするために、動画処理の振る舞いのみを担当するクラスを別で用意するべきだなと思いました。
-
-## デモ
-![demo](https://github.com/AkinoJoey/video-compressor-service/assets/124570638/3bbbe40f-04ba-40b9-9aa2-0944ddc0754c)
 
 ## 使用方法
 1. リポジトリをクローンする
